@@ -5,14 +5,19 @@
 import os
 import socket
 from typing import Tuple, no_type_check
+from collections import namedtuple
+from datetime import datetime
 
 HOST = "localhost"  # Standard loopback interface address (localhost)
 PORT = 55921        # Port to listen on (non-privileged ports are > 1023)
 TEAM_NAME = "Zomas"
 
+Source = namedtuple('Source', 'address dateReceived numPeers peers')
+
 class SocketCommunication: 
     def __init__(self):
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__sources = []
 
     def start(self) -> None:
         self.__sock.connect((HOST, PORT))
@@ -50,7 +55,16 @@ class SocketCommunication:
                     response += f.read()
             response += "\n...\n"
         elif (requestType == "receive peers"):
-            pass #TODO Zach
+            #TODO Zach make this less jank and maybe change the recieveRequest() method so that we arent misusing it (or write a new one?)
+            peerData = self.receiveRequest().split('\n')
+            address = HOST
+            dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            numPeers = peerData[0]
+            peers = []
+            for i in range(int(numPeers)):
+                peers.append(peerData[i + 1])
+            self.__sources.append(Source(address, dateReceived, numPeers, peers))
+            return
         elif (requestType == "get report"):
             pass #TODO Zach
         elif (requestType == "close"):
