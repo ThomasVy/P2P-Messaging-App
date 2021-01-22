@@ -24,6 +24,8 @@ class SocketCommunication:
         while True:
             data = self.receiveRequest()
             response = self.processRequest(data)
+            if data.split('\n')[0] == "receive peers":
+                continue
             if not response:
                 break
             self.sendResponse(response)
@@ -57,16 +59,38 @@ class SocketCommunication:
         elif (requestType == "receive peers"):
             #TODO Zach make this less jank and maybe change the recieveRequest() method so that we arent misusing it (or write a new one?)
             peerData = self.receiveRequest().split('\n')
-            address = HOST
+            address = str(self.__sock.getsockname()[0]) + ":" + str(self.__sock.getsockname()[1])
             dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             numPeers = peerData[0]
             peers = []
             for i in range(int(numPeers)):
                 peers.append(peerData[i + 1])
             self.__sources.append(Source(address, dateReceived, numPeers, peers))
-            return
         elif (requestType == "get report"):
-            pass #TODO Zach
+            totalPeers = 0
+            peerlist = []
+            response = ''
+            totalSources = len(self.__sources)
+
+            # Iterate once so that we get the total number of peers and sources
+            for source in self.__sources:
+                totalPeers += int(source.numPeers)
+                for peer in source.peers:
+                    peerlist.append(peer)
+
+            response += (str(totalPeers) + "\n")
+            for peer in peerlist:
+                response += (str(peer) + "\n")
+            response += (str(totalSources) + "\n")
+
+            # Iterate a second time to list the sources
+            for source in self.__sources:
+                response += (source.address + "\n")
+                response += (source.dateReceived + "\n")
+                response += (source.numPeers + "\n")
+                for peer in source.peers:
+                    response += (peer + "\n")
+
         elif (requestType == "close"):
-            pass
+            self.__sock.close()
         return response
