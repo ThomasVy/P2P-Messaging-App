@@ -10,7 +10,7 @@ from datetime import datetime
 
 HOST = "localhost"  # Standard loopback interface address (localhost)
 PORT = 55921        # Port to listen on (non-privileged ports are > 1023)
-TEAM_NAME = "Zomas"
+TEAM_NAME = "Zhomas"
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
 
@@ -29,7 +29,6 @@ class SocketCommunication:
             if not response:
                 break
             self.sendResponse(response)
-        self.__sock.close()
 
     def receiveRequest(self) -> str:
         data = self.__sock.recv(1024)
@@ -48,7 +47,6 @@ class SocketCommunication:
         if (requestType == "get team name"):
            response = TEAM_NAME + '\n'
         elif (requestType == "get code"):
-            #TODO Thomas Add more files once first iteration is completed
             currentLocation = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
             files = [f for f in os.listdir(currentLocation) if os.path.isfile(os.path.join(currentLocation, f))]
             response = "Python\n"
