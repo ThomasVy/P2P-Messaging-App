@@ -1,4 +1,5 @@
 # craftResponseUtils.py file 
+# Formats response strings to send to through the socket
 # CPSC 559 Project
 # By Zachery Sims & Thomas Vy
 from collections import namedtuple
@@ -7,6 +8,7 @@ import os
 TEAM_NAME = "Zhomas"
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
 
+# goes through all files in src folder and crafts response string with all the code
 def getCode() -> str:
     currentLocation = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     files = [f for f in os.listdir(currentLocation) if os.path.isfile(os.path.join(currentLocation, f))]
@@ -17,10 +19,12 @@ def getCode() -> str:
     response += "\n...\n"
     return response
 
+# crafts response string with team name
 def getTeamName() -> str:
     response = TEAM_NAME + '\n'
     return response
 
+# crafts response string with appropriate report information
 def getReport(sources: list[Source]) -> str:
     totalPeers = 0
     peerlist = []
@@ -46,3 +50,4 @@ def getReport(sources: list[Source]) -> str:
         for peer in source.peers:
             response += (peer + "\n")
     return response
+

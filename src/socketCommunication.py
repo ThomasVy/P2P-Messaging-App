@@ -2,63 +2,66 @@
 # CPSC 559 Project
 # By Zachery Sims & Thomas Vy
 
-import socket
 from craftResponseUtils import getCode, getReport, getTeamName, Source
 from typing import Tuple, no_type_check
 from datetime import datetime
+import asyncio
 
-HOST = "localhost"  # Standard loopback interface address (localhost)
+HOST = "localhost"  # Standard interface address
 PORT = 55921        # Port to listen on
 
+#Socket Communication class is used to communicate with the Registry.
 class SocketCommunication: 
     def __init__(self):
-        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sources = []
         self.__socketOpen = False
 
-    def start(self) -> None:
-        self.__sock.connect((HOST, PORT))
+    async def start(self) -> None:
+        self.__reader, self.__writer = await asyncio.open_connection(HOST, PORT)
         self.__socketOpen = True
-        while self.__socketOpen:
-            data = self.receiveRequest()
-            response = self.processRequest(data)
+        while self.__socketOpen: #Loop until the socket is closed by the close message
+            data = await self.receiveMessage()
+            response = await self.processRequest(data)
             if response:
-                self.sendResponse(response)
+                await self.sendResponse(response)
 
-    def receiveRequest(self) -> str:
-        data = self.__sock.recv(1024, socket.MSG_WAITALL)
-        data = data.decode('utf-8')
+    # Reads a line of the socket and strips off the new line
+    async def receiveMessage(self) -> str:
+        data = await self.__reader.readline()
+        data = data.decode('utf-8').split('\n')[0]
         print("Received", f'"{data}"')
         return data
 
-    def sendResponse(self, response: str) -> None:
+    # Writes to the socket with supplied message
+    async def sendResponse(self, response: str) -> None:
         print("Sending", f'"{response}"')
-        self.__sock.sendall(str.encode(response))
+        self.__writer.write(response.encode())
+        await self.__writer.drain()
 
-    def receivePeers(self) -> str:
-        #TODO Zach make this less jank and maybe change the recieveRequest() method so that we arent misusing it (or write a new one?)
-        peerData = self.receiveRequest().split('\n')
-        address = str(self.__sock.getsockname()[0]) + ":" + str(self.__sock.getsockname()[1])
+    #Grabs the peer list from the source and puts the list in a member variable
+    async def receivePeers(self) -> str:
+        address = str(HOST) + ":" + str(PORT)
         dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        numPeers = peerData[0]
+        numPeers = await self.receiveMessage()
         peers = []
         for i in range(int(numPeers)):
-            peers.append(peerData[i + 1])
+            peer = await self.receiveMessage()
+            peers.append(peer)
         self.__sources.append(Source(address, dateReceived, numPeers, peers))
 
-    def processRequest(self, data: str) -> str:
-        request = data.split('\n')
-        requestType = request[0]
+    # Processes the request and reacts to the message accordingly.
+    async def processRequest(self, requestType: str) -> str:
         response = ""
         if (requestType == "get team name"):
             response = getTeamName()
         elif (requestType == "get code"):
             response = getCode()
         elif (requestType == "receive peers"):
-           self.receivePeers()
+           await self.receivePeers()
         elif (requestType == "get report"):
             response = getReport(self.__sources)
-        elif (requestType == "close"):
-            self.__sock.close()
+        else: # (requestType == "close" or anything unexpected)
+            self.__writer.close()
+            await self.__writer.wait_closed()
             self.__socketOpen = False
         return response
