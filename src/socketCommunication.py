@@ -7,9 +7,6 @@ from typing import Tuple, no_type_check
 from datetime import datetime
 import asyncio
 
-HOST = "localhost"  # Standard interface address
-PORT = 55921        # Port to listen on
-
 #Socket Communication class is used to communicate with the Registry.
 class SocketCommunication: 
     def __init__(self):
@@ -17,7 +14,10 @@ class SocketCommunication:
         self.__socketOpen = False
 
     async def start(self) -> None:
-        self.__reader, self.__writer = await asyncio.open_connection(HOST, PORT)
+        self.__host = input("Enter Host Address: ")
+        self.__port = int(input("Enter Host Port Address: "))
+        self.__teamName = input("Enter Team Name: ")
+        self.__reader, self.__writer = await asyncio.open_connection(self.__host, self.__port)
         self.__socketOpen = True
         while self.__socketOpen: #Loop until the socket is closed by the close message
             data = await self.receiveMessage()
@@ -40,7 +40,7 @@ class SocketCommunication:
 
     #Grabs the peer list from the source and puts the list in a member variable
     async def receivePeers(self) -> str:
-        address = str(HOST) + ":" + str(PORT)
+        address = str(self.__host) + ":" + str(self.__port)
         dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         numPeers = await self.receiveMessage()
         peers = []
@@ -53,7 +53,7 @@ class SocketCommunication:
     async def processRequest(self, requestType: str) -> str:
         response = ""
         if (requestType == "get team name"):
-            response = getTeamName()
+            response = getTeamName(self.__teamName)
         elif (requestType == "get code"):
             response = getCode()
         elif (requestType == "receive peers"):

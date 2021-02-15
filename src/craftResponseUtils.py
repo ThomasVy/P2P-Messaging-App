@@ -5,7 +5,6 @@
 from collections import namedtuple
 import os
 
-TEAM_NAME = "Zhomas"
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
 
 # goes through all files in src folder and crafts response string with all the code
@@ -20,8 +19,8 @@ def getCode() -> str:
     return response
 
 # crafts response string with team name
-def getTeamName() -> str:
-    response = TEAM_NAME + '\n'
+def getTeamName(teamName: str) -> str:
+    response = teamName + '\n'
     return response
 
 # crafts response string with appropriate report information
