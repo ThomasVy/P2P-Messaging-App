@@ -6,9 +6,9 @@ class PeerInfo:
         self.__sourceList = {}
         self.__totalPeerList= set([])
 
-    def addSource(self, address: Address, date: str, peerList: list[str]) -> None:
-        self.__sourceList[str(address)] = Source(address, date, peerList)
-        self.__totalPeerList.update(peerList)
+    def addSource(self, source: Source) -> None:
+        self.__sourceList[str(source.address)] = source
+        self.__totalPeerList.update(source.peerList)
 
     @property
     def totalPeerList(self) -> set[str]:

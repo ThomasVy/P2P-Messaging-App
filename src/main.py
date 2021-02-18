@@ -3,12 +3,12 @@
 # CPSC 559 Project
 # By Zachery Sims & Thomas Vy
 
-from socketCommunication import SocketCommunication
+from twitterApplication import TwitterApplication
 import asyncio
 
 def main() -> None:
-    socketCommunication = SocketCommunication()
-    asyncio.run(socketCommunication.start())
+    twitterApp = TwitterApplication()
+    asyncio.run(twitterApp.start())
 
 if __name__ == '__main__':
     main()
