@@ -3,6 +3,7 @@
 # CPSC 559 Project
 # By Zachery Sims & Thomas Vy
 from collections import namedtuple
+from peerInfo import PeerInfo
 import os
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
@@ -20,33 +21,26 @@ def getCode() -> str:
 
 # crafts response string with team name
 def getTeamName(teamName: str) -> str:
-    response = teamName + '\n'
+    response = f'{teamName}\n'
     return response
 
 # crafts response string with appropriate report information
-def getReport(sources: list[Source]) -> str:
-    totalPeers = 0
-    peerlist = []
+def getReport(peerInfo: PeerInfo) -> str:
     response = ''
-    totalSources = len(sources)
+    totalPeerList = peerInfo.totalPeerList
+    sourceList = peerInfo.sourceList
 
-    # Iterate once so that we get the total number of peers and sources
-    for source in sources:
-        totalPeers += int(source.numPeers)
-        for peer in source.peers:
-            peerlist.append(peer)
-
-    response += (str(totalPeers) + "\n")
-    for peer in peerlist:
-        response += (str(peer) + "\n")
-    response += (str(totalSources) + "\n")
+    response += f'{len(totalPeerList)}\n'
+    for peer in totalPeerList:
+        response += f'{peer}\n'
+    response += f'{len(sourceList)}\n'
 
     # Iterate a second time to list the sources
-    for source in sources:
-        response += (source.address + "\n")
-        response += (source.dateReceived + "\n")
-        response += (source.numPeers + "\n")
-        for peer in source.peers:
-            response += (peer + "\n")
+    for source in sourceList:
+        response += f'{str(source.address)}\n'
+        response += f'{source.date}\n'
+        response += f'{len(source.peerList)}\n'
+        for peer in source.peerList:
+            response += f'{peer}\n'
     return response
 
