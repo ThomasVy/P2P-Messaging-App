@@ -1,37 +1,46 @@
 from peerInfo import PeerInfo
 from address import Address
-from craftResponseUtils import getCode, getReport, getTeamName
-
-from socketCommunication import SocketCommunication
+import craftResponseUtils
+from TCPCommunication import TCPCommunication
+from UDPServer import UDPServer
+import asyncio
 
 class TwitterApplication:
     def __init__(self) -> None:
         self.__peerInfo = PeerInfo()
-        self.__socket = SocketCommunication()
-
-    async def start(self) -> None:
-        ip = input("Enter Host Address: ")
-        port = int(input("Enter Host Port Address: "))
+        registryIP = input("Enter Registry Address: ")
+        registryPort = int(input("Enter Registry Port Address: "))
         self.__teamName = input("Enter Team Name: ")
-        self.__address = Address(ip, port)
-        await self.__socket.openConnection(ip, port)
+        self.__registryAddress = Address(registryIP, registryPort)
+        self.__TCPCommunication = TCPCommunication(self.__registryAddress)
+        UDPServerIP = input("Enter UDP Server Address: ")
+        UDPServerPort = int(input("Enter UDP Server Port Address: "))
+        self.__UDPServer = UDPServer(Address(UDPServerIP, UDPServerPort))
 
-        while self.__socket.open: #Loop until the socket is closed by the close message
-            data = await self.__socket.receiveMessage()
+    def start(self) -> None:
+        self.__UDPServer.startServer()
+        asyncio.run(self.contactRegistry())
+
+    async def contactRegistry(self) -> None:
+        await self.__TCPCommunication.openConnection()
+        while self.__TCPCommunication.open: #Loop until the socket is closed by the close message
+            data = await self.__TCPCommunication.receiveMessage()
             await self.processRequest(data)
-           
+
     # Processes the request and reacts to the message accordingly.
     async def processRequest(self, requestType: str) -> None:
         response = ""
         if (requestType == "get team name"):
-            response = getTeamName(self.__teamName)
+            response = craftResponseUtils.getTeamName(self.__teamName)
         elif (requestType == "get code"):
-            response = getCode()
+            response = craftResponseUtils.getCode()
         elif (requestType == "receive peers"):
-           self.__peerInfo.addSource(await self.__socket.receivePeers(self.__address))
+           self.__peerInfo.addSource(await self.__TCPCommunication.receivePeers(self.__registryAddress))
         elif (requestType == "get report"):
-            response = getReport(self.__peerInfo)
+            response = craftResponseUtils.getReport(self.__peerInfo)
+        elif (requestType == "get location"):
+            response = craftResponseUtils.getLocation(self.__UDPServer.address)
         else: # (requestType == "close" or anything unexpected)
-            await self.__socket.closeSocket()
+            await self.__TCPCommunication.closeSocket()
         if response:
-            await self.__socket.sendResponse(response)
+            await self.__TCPCommunication.sendResponse(response)

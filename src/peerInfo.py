@@ -1,4 +1,3 @@
-from address import Address
 from source import Source
 
 class PeerInfo:

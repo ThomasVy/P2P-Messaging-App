@@ -6,20 +6,24 @@ from datetime import datetime
 from address import Address
 from source import Source
 
-#Socket Communication class is used to communicate with the Registry.
-class SocketCommunication: 
-    def __init__(self):
+#TCP communication class is used to communicate with the Registry.
+class TCPCommunication: 
+    def __init__(self, TCPAddress: Address):
         self.__open = False
+        self.__address = TCPAddress
 
-    async def openConnection(self, ip: str, port: int):
+    async def openConnection(self):
         self.__open = True
-        self.__reader, self.__writer = await asyncio.open_connection(ip, port)
+        self.__reader, self.__writer = await asyncio.open_connection(
+            self.__address.ip,
+            self.__address.port)
 
     # Reads a line of the socket and strips off the new line
     async def receiveMessage(self) -> str:
         data = await self.__reader.readline()
         data = data.decode('utf-8').split('\n')[0]
         print("Received", f'"{data}"')
+        input("waiting")
         return data
 
     # Writes to the socket with supplied message

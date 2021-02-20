@@ -4,6 +4,7 @@
 # By Zachery Sims & Thomas Vy
 from collections import namedtuple
 from peerInfo import PeerInfo
+from address import Address
 import os
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
@@ -44,3 +45,6 @@ def getReport(peerInfo: PeerInfo) -> str:
             response += f'{peer}\n'
     return response
 
+def getLocation(serverAddress: Address) -> str:
+    response = f'{str(serverAddress)}\n'
+    return response
