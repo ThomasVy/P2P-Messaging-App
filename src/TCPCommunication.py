@@ -23,7 +23,6 @@ class TCPCommunication:
         data = await self.__reader.readline()
         data = data.decode('utf-8').split('\n')[0]
         print("Received", f'"{data}"')
-        input("waiting")
         return data
 
     # Writes to the socket with supplied message
@@ -33,17 +32,16 @@ class TCPCommunication:
         await self.__writer.drain()
 
     #Grabs the peer list from the source
-    async def receivePeers(self, address: Address) -> Source:
+    async def receivePeers(self) -> Source:
         dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         numPeers = await self.receiveMessage()
         peers = []
         for i in range(int(numPeers)):
             peers.append(await self.receiveMessage())
-        return Source(address, dateReceived, peers)
+        return Source(self.__address, dateReceived, peers)
 
     async def closeSocket(self) -> None:
         self.__writer.close()
-        await self.__writer.wait_closed()
         self.__open = False
         
     @property

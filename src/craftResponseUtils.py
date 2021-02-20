@@ -38,7 +38,7 @@ def getReport(peerInfo: PeerInfo) -> str:
 
     # Iterate a second time to list the sources
     for source in sourceList:
-        response += f'{str(source.address)}\n'
+        response += f'{source.address}\n'
         response += f'{source.date}\n'
         response += f'{len(source.peerList)}\n'
         for peer in source.peerList:
@@ -46,5 +46,5 @@ def getReport(peerInfo: PeerInfo) -> str:
     return response
 
 def getLocation(serverAddress: Address) -> str:
-    response = f'{str(serverAddress)}\n'
+    response = f'{serverAddress}\n'
     return response

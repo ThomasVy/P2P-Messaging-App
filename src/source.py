@@ -1,7 +1,7 @@
 from address import Address
 
 class Source:
-    def __init__(self, address: Address, date: str, peerList: set[str]) -> None:
+    def __init__(self, address: Address, date: str, peerList: set([Address])) -> None:
         self.__address = address
         self.__date = date
         self.__peerList = peerList
@@ -15,5 +15,5 @@ class Source:
         return self.__date
 
     @property
-    def peerList(self) -> set[str]:
+    def peerList(self) -> set([Address]):
         return self.__peerList

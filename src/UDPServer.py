@@ -1,5 +1,4 @@
 from address import Address
-import socket
 import threading
 import socketserver
 
@@ -21,8 +20,9 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
     pass
 
 class UDPServer:
-    def __init__(self, UDPAddress: Address) -> None:
-        self.__address = UDPAddress
+    def __init__(self) -> None:
+        self.__address = Address(input("Enter UDP Server Address: "), 
+            int(input("Enter UDP Server Port Address: ")))
 
     def startServer(self) -> None:
         server = ThreadedUDPServer((self.__address.ip, self.__address.port), ThreadedUDPRequestHandler)
@@ -39,7 +39,4 @@ class UDPServer:
     def address(self) -> Address:
         return self.__address
 
-if __name__ == '__main__':
-    udpServer = UDPServer(Address("localhost", 0))
-    udpServer.startServer()
 

@@ -1,4 +1,6 @@
+from address import Address
 from source import Source
+from address import Address
 
 class PeerInfo:
     def __init__(self) -> None:
@@ -10,9 +12,9 @@ class PeerInfo:
         self.__totalPeerList.update(source.peerList)
 
     @property
-    def totalPeerList(self) -> set[str]:
+    def totalPeerList(self) -> set([Address]):
         return self.__totalPeerList
 
     @property
-    def sourceList(self) -> list[Source]:
+    def sourceList(self) -> list([Source]):
         return self.__sourceList.values()
