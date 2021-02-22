@@ -1,6 +1,5 @@
 from address import Address
 from source import Source
-from address import Address
 
 class PeerInfo:
     def __init__(self) -> None:

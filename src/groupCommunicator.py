@@ -1,4 +1,5 @@
 from peerInfo import PeerInfo
+from address import Address
 import socket
 from UDPServer import UDPServer
 from registryCommunicator import RegistryCommunicator
@@ -7,7 +8,7 @@ import asyncio
 class GroupCommunicator:
     def __init__(self) -> None:
         self.__peerInfo = PeerInfo()
-        self.__UDPServer = UDPServer()
+        self.__UDPServer = UDPServer(self.__peerInfo)
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer.address)
                 
@@ -17,8 +18,7 @@ class GroupCommunicator:
             print(f"Sending {message} to {peer}")
             sock.sendto(message.encode(), (peer.ip, peer.port))
 
-    def start(self) -> None:
+    async def start(self) -> None:
         self.__UDPServer.startServer()
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.__registryCommunicator.start())
-        loop.run_forever()
+        await self.__registryCommunicator.start()
+        self.bMulticast("unga bunga")

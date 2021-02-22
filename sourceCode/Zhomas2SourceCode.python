@@ -1,0 +1,297 @@
+Sun Feb 21 16:34:22 MST 2021
+python
+from groupCommunicator import GroupCommunicator
+
+class TwitterApplication:
+    def __init__(self) -> None:
+        self.__groupCommunicator = GroupCommunicator()
+       
+    async def start(self) -> None: 
+        await self.__groupCommunicator.start()
+    
+    def grabUserTweet()-> None:
+        pass #TODOfrom address import Address
+from peerInfo import PeerInfo
+import threading
+import socketserver
+
+class ThreadedUDPRequestHandler(socketserver.BaseRequestHandler):
+    """
+    This class works similar to the TCP handler class, except that
+    self.request consists of a pair of data and client socket, and since
+    there is no connection the client address must be given explicitly
+    when sending data back via sendto().
+    """
+    def handle(self):
+        #TODO: send this message to be sent to the executor
+        dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        data = self.request[0].strip()
+        socket = self.request[1]
+        print(f'{self.client_address[0]} wrote: {data}')
+        #this is where we should process what type of request: peer, snip, or stop message
+        #socket.sendto(data.upper(), self.client_address)
+
+    def executeMessageRead(self, messageType: str, messageBody: str):
+        if messageType == "snip":
+            pass
+            #TODO: add the tweet as a snippet
+        elif messageType == "peer":
+            pass
+            #TODO: add the new peers and the source
+        elif messageType == "stop":
+            pass
+            #TODO: close the connection with this peer
+
+class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
+    pass
+
+class UDPServer:
+    def __init__(self, peerInfo: PeerInfo) -> None:
+        self.__peerInfo = peerInfo
+        self.__address = Address(input("Enter UDP Server Address: "), 
+            int(input("Enter UDP Server Port Address: ")))
+
+    def startServer(self) -> None:
+        server = ThreadedUDPServer((self.__address.ip, self.__address.port), ThreadedUDPRequestHandler)
+        with server:
+            # Start a thread with the server -- that thread will then start one
+            # more thread for each request
+            server_thread = threading.Thread(target=server.serve_forever)
+            # Exit the server thread when the main thread terminates
+            server_thread.daemon = True
+            server_thread.start()
+            print("Starting UDP server in thread:", server_thread.name)
+
+    @property
+    def address(self) -> Address:
+        return self.__address
+
+
+from peerInfo import PeerInfo
+from address import Address
+import socket
+from UDPServer import UDPServer
+from registryCommunicator import RegistryCommunicator
+import asyncio
+
+class GroupCommunicator:
+    def __init__(self) -> None:
+        self.__peerInfo = PeerInfo()
+        self.__UDPServer = UDPServer(self.__peerInfo)
+        self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
+            self.__UDPServer.address)
+                
+    def bMulticast(self, message: str) -> None:
+        for peer in self.__peerInfo.totalPeerList:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            print(f"Sending {message} to {peer}")
+            print(type(peer))
+            sock.sendto(message.encode(), (peer.ip, peer.port))
+
+    async def start(self) -> None:
+        self.__UDPServer.startServer()
+        await self.__registryCommunicator.start()
+        self.bMulticast("unga bunga")from address import Address
+
+class Source:
+    def __init__(self, address: Address, date: str, peerList: set([Address])) -> None:
+        self.__address = address
+        self.__date = date
+        self.__peerList = peerList
+
+    @property
+    def address(self) -> Address:
+        return self.__address
+
+    @property
+    def date(self) -> str:
+        return self.__date
+
+    @property
+    def peerList(self) -> set([Address]):
+        return self.__peerList# craftResponseUtils.py file 
+# Formats response strings to send to through the socket
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
+from collections import namedtuple
+from peerInfo import PeerInfo
+from address import Address
+import os
+
+Source = namedtuple('Source', 'address dateReceived numPeers peers')
+
+# goes through all files in src folder and crafts response string with all the code
+def getCode() -> str:
+    currentLocation = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    files = [f for f in os.listdir(currentLocation) if os.path.isfile(os.path.join(currentLocation, f))]
+    response = "Python\n"
+    for file in files:
+        with open(os.path.join(currentLocation, file), 'r') as f:
+            response += f.read()
+    response += "\n...\n"
+    return response
+
+# crafts response string with team name
+def getTeamName(teamName: str) -> str:
+    response = f'{teamName}\n'
+    return response
+
+# crafts response string with appropriate report information
+def getReport(peerInfo: PeerInfo) -> str:
+    response = ''
+    totalPeerList = peerInfo.totalPeerList
+    sourceList = peerInfo.sourceList
+
+    response += f'{len(totalPeerList)}\n'
+    for peer in totalPeerList:
+        response += f'{peer}\n'
+    response += f'{len(sourceList)}\n'
+
+    # Iterate a second time to list the sources
+    for source in sourceList:
+        response += f'{source.address}\n'
+        response += f'{source.date}\n'
+        response += f'{len(source.peerList)}\n'
+        for peer in source.peerList:
+            response += f'{peer}\n'
+    return response
+
+def getLocation(serverAddress: Address) -> str:
+    response = f'{serverAddress}\n'
+    return response
+from address import Address
+from source import Source
+
+class PeerInfo:
+    def __init__(self) -> None:
+        self.__sourceList = {}
+        self.__totalPeerList= set([])
+
+    def addSource(self, source: Source) -> None:
+        self.__sourceList[str(source.address)] = source
+        self.__totalPeerList.update(source.peerList)
+
+    @property
+    def totalPeerList(self) -> set([Address]):
+        return self.__totalPeerList
+
+    @property
+    def sourceList(self) -> list([Source]):
+        return self.__sourceList.values()import craftResponseUtils
+from address import Address
+from TCPCommunication import TCPCommunication
+from peerInfo import PeerInfo
+
+class RegistryCommunicator:
+    def __init__(self, peerInfo: PeerInfo, UDPServerAddress: Address) -> None:
+        self.__peerInfo = peerInfo
+        self.__UDPServerAddress = UDPServerAddress
+        self.__teamName = input("Enter Team Name: ")
+        self.__registryAddress = Address(input("Enter Registry Address: "), 
+            int(input("Enter Registry Port Address: ")))
+        self.__TCPCommunication = TCPCommunication(self.__registryAddress)
+
+    async def start(self) -> None:
+        await self.__TCPCommunication.openConnection()
+        while self.__TCPCommunication.open: #Loop until the socket is closed by the close message
+            data = await self.__TCPCommunication.receiveMessage()
+            await self.processRequest(data)
+
+    # Processes the request and reacts to the message accordingly.
+    async def processRequest(self, requestType: str) -> None:
+        response = ""
+        if (requestType == "get team name"):
+            response = craftResponseUtils.getTeamName(self.__teamName)
+        elif (requestType == "get code"):
+            response = craftResponseUtils.getCode()
+        elif (requestType == "receive peers"):
+           self.__peerInfo.addSource(await self.__TCPCommunication.receivePeers())
+        elif (requestType == "get report"):
+            response = craftResponseUtils.getReport(self.__peerInfo)
+        elif (requestType == "get location"):
+            response = craftResponseUtils.getLocation(self.__UDPServerAddress)
+        else: # (requestType == "close" or anything unexpected)
+            await self.__TCPCommunication.closeSocket()
+        if response:
+            await self.__TCPCommunication.sendResponse(response)class Address:
+    def __init__(self, ip: str, port: int) -> None:
+        self.__ip = ip
+        self.__port = port
+
+    @property
+    def ip(self) -> str:
+        return self.__ip
+    
+    @property
+    def port(self) -> int:
+        return self.__port
+
+    def __str__(self) -> str:
+        return f'{self.__ip}:{self.__port}'
+# socketCommunication.py file 
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
+import asyncio
+from datetime import datetime
+from address import Address
+from source import Source
+
+#TCP communication class is used to communicate with the Registry.
+class TCPCommunication: 
+    def __init__(self, TCPAddress: Address):
+        self.__open = False
+        self.__address = TCPAddress
+
+    async def openConnection(self):
+        self.__open = True
+        self.__reader, self.__writer = await asyncio.open_connection(
+            self.__address.ip,
+            self.__address.port)
+
+    # Reads a line of the socket and strips off the new line
+    async def receiveMessage(self) -> str:
+        data = await self.__reader.readline()
+        data = data.decode('utf-8').split('\n')[0]
+        print("Received", f'"{data}"')
+        return data
+
+    # Writes to the socket with supplied message
+    async def sendResponse(self, response: str) -> None:
+        print("Sending", f'"{response}"')
+        self.__writer.write(response.encode())
+        await self.__writer.drain()
+
+    #Grabs the peer list from the source
+    async def receivePeers(self) -> Source:
+        dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        numPeers = await self.receiveMessage()
+        peers = []
+        for i in range(int(numPeers)):
+            peerString = await self.receiveMessage()
+            peer = peerString.split(":")
+            peers.append(Address(peer[0], int(peer[1])))
+        return Source(self.__address, dateReceived, peers)
+
+    async def closeSocket(self) -> None:
+        self.__writer.close()
+        self.__open = False
+        
+    @property
+    def open(self) -> bool:
+        return self.__open# main.py file 
+# Used to run the main application
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
+from twitterApplication import TwitterApplication
+import asyncio
+
+def main() -> None:
+    twitterApp = TwitterApplication()
+    loop = asyncio.get_event_loop()
+    loop.create_task(twitterApp.start())
+    loop.run_forever()
+
+if __name__ == '__main__':
+    main()
+
+

@@ -1,4 +1,5 @@
 from address import Address
+from peerInfo import PeerInfo
 import threading
 import socketserver
 
@@ -10,13 +11,32 @@ class UDPRequestHandler(socketserver.DatagramRequestHandler):
     when sending data back via sendto().
     """
     def handle(self):
-        # data = self.request[0].strip()
-        data = datagram = self.rfile.readline().strip()
-        print(f'{self.client_address} wrote: {data}')
+        print("handling a message")
+        #TODO: send this message to be sent to the executor
+        dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        data = self.request[0].strip()
+        socket = self.request[1]
+        print(f'{self.client_address[0]} wrote: {data}')
         #this is where we should process what type of request: peer, snip, or stop message
+        #socket.sendto(data.upper(), self.client_address)
+
+    def executeMessageRead(self, messageType: str, messageBody: str):
+        if messageType == "snip":
+            pass
+            #TODO: add the tweet as a snippet
+        elif messageType == "peer":
+            pass
+            #TODO: add the new peers and the source
+        elif messageType == "stop":
+            pass
+            #TODO: close the connection with this peer
+
+class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
+    pass
 
 class UDPServer:
-    def __init__(self) -> None:
+    def __init__(self, peerInfo: PeerInfo) -> None:
+        self.__peerInfo = peerInfo
         self.__address = Address(input("Enter UDP Server Address: "), 
             int(input("Enter UDP Server Port Address: ")))
 
