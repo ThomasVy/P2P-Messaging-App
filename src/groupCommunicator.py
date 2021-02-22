@@ -1,9 +1,7 @@
 from peerInfo import PeerInfo
-from address import Address
 import socket
 from UDPServer import UDPServer
 from registryCommunicator import RegistryCommunicator
-import asyncio
 
 class GroupCommunicator:
     def __init__(self) -> None:

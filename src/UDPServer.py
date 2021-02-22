@@ -2,6 +2,7 @@ from address import Address
 from peerInfo import PeerInfo
 import threading
 import socketserver
+from datetime import datetime
 
 class UDPRequestHandler(socketserver.DatagramRequestHandler):
     """
@@ -37,7 +38,7 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
 class UDPServer:
     def __init__(self, peerInfo: PeerInfo) -> None:
         self.__peerInfo = peerInfo
-        self.__address = Address(input("Enter UDP Server Address: "), 
+        self.__address = Address("localhost", 
             int(input("Enter UDP Server Port Address: ")))
 
     def startServer(self) -> None:
