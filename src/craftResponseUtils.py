@@ -28,7 +28,7 @@ def getTeamName(teamName: str) -> str:
 # crafts response string with appropriate report information
 def getReport(peerInfo: PeerInfo) -> str:
     response = ''
-    totalPeerList = peerInfo.totalPeerList
+    totalPeerList = peerInfo.activePeerList
     sourceList = peerInfo.sourceList
 
     response += f'{len(totalPeerList)}\n'
