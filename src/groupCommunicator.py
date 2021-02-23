@@ -7,6 +7,7 @@ import time
 
 class GroupCommunicator:
     def __init__(self) -> None:
+        self.__shutdown = False
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer(self.__peerInfo)
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
@@ -26,7 +27,7 @@ class GroupCommunicator:
         periodicSendPeerMessageThread.start()
 
     def periodicallySendPeerMessage(self) -> None:
-        while True:
+        while not self.__shutdown:
             for peer in self.__peerInfo.activePeerList:
                 peerMessage = f'peer{peer}'
                 self.bMulticast(peerMessage)
