@@ -11,22 +11,41 @@ class UDPRequestHandler(socketserver.DatagramRequestHandler):
     there is no connection the client address must be given explicitly
     when sending data back via sendto().
     """
+
     def handle(self):
         print("handling a message")
         #TODO: send this message to be sent to the executor
-        dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         data = self.request[0].strip()
         socket = self.request[1]
-        print(f'{self.client_address[0]} wrote: {data}')
+        message = data.decode('utf-8').split('\n')[0]
+        print(f'{self.client_address[0]} wrote: ' + message)
+        messagetype = message[:4]
+        message = message[4:]
+        sourceAddress = Address(self.client_address[0], self.client_address[1])
+        self.executeMessageRead(messagetype, message, sourceAddress)
         #this is where we should process what type of request: peer, snip, or stop message
         #socket.sendto(data.upper(), self.client_address)
 
-    def executeMessageRead(self, messageType: str, messageBody: str):
+    def getPeerInfo(self, peerInfo: PeerInfo) -> None:
+        self.__peerInfo = peerInfo
+        return
+
+    def executeMessageRead(self, messageType: str, messageBody: str, sourceAddress: Address):
+        dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         if messageType == "snip":
             pass
             #TODO: add the tweet as a snippet
         elif messageType == "peer":
-            pass
+            # Making sure that we arent adding the same peer or source twice
+            sourceInList = False
+            peerAddressInfo = messageBody.split(":")
+            peerAddress = Address(peerAddressInfo[0], peerAddressInfo[1])
+            if(peerAddress not in self.__peerInfo.totalPeerList()):
+                for source in self.__peerInfo.sourceList():
+                    if source.address() == sourceAddress:
+                        sourceInList = True
+                        break
+            self.__peerInfo.addSource(Source(sourceAddress, dateReceived, set([peerAddress])))
             #TODO: add the new peers and the source
         elif messageType == "stop":
             pass
@@ -41,9 +60,10 @@ class UDPServer:
         self.__timestamp = 0
         self.__address = Address("localhost", 
             int(input("Enter UDP Server Port Address: ")))
+        self.__requestHandler = UDPRequestHandler()
 
     def startServer(self) -> None:
-        server = socketserver.ThreadingUDPServer((self.__address.ip, self.__address.port), UDPRequestHandler)
+        server = socketserver.ThreadingUDPServer((self.__address.ip, self.__address.port), UDPReqeustHandler)
         # Start a thread with the server -- that thread will then start one
         # more thread for each request
         server_thread = threading.Thread(target=server.serve_forever)
