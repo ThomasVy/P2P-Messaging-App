@@ -33,3 +33,7 @@ class GroupCommunicator:
                 self.bMulticast(peerMessage)
                 time.sleep(1)
             time.sleep(60)# sleep for 60 seconds
+
+    @property
+    def shutdown(self) -> bool:
+        return self.__shutdown

@@ -6,7 +6,7 @@ class TwitterApplication:
        
     async def start(self) -> None: 
         await self.__groupCommunicator.start()
-        while not self.__groupCommunicator.__shutdown:
+        while not self.__groupCommunicator.shutdown:
             self.grabUserTweet()
     
     def grabUserTweet(self)-> None:

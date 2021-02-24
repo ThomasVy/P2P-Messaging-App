@@ -1,4 +1,4 @@
-Sun Feb 21 16:43:19 MST 2021
+Tue Feb 23 19:47:07 MST 2021
 python
 from groupCommunicator import GroupCommunicator
 
@@ -8,14 +8,19 @@ class TwitterApplication:
        
     async def start(self) -> None: 
         await self.__groupCommunicator.start()
+        while not self.__groupCommunicator.shutdown:
+            self.grabUserTweet()
     
-    def grabUserTweet()-> None:
-        pass #TODOfrom address import Address
+    def grabUserTweet(self)-> None:
+        tweet = input()
+        self.__groupCommunicator.bMulticast(message=tweet)
+from address import Address
 from peerInfo import PeerInfo
 import threading
 import socketserver
+from datetime import datetime
 
-class ThreadedUDPRequestHandler(socketserver.BaseRequestHandler):
+class UDPRequestHandler(socketserver.DatagramRequestHandler):
     """
     This class works similar to the TCP handler class, except that
     self.request consists of a pair of data and client socket, and since
@@ -49,41 +54,39 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
 class UDPServer:
     def __init__(self, peerInfo: PeerInfo) -> None:
         self.__peerInfo = peerInfo
-        self.__address = Address(input("Enter UDP Server Address: "), 
+        self.__timestamp = 0
+        self.__address = Address("localhost", 
             int(input("Enter UDP Server Port Address: ")))
 
     def startServer(self) -> None:
-        server = ThreadedUDPServer((self.__address.ip, self.__address.port), ThreadedUDPRequestHandler)
-        with server:
-            # Start a thread with the server -- that thread will then start one
-            # more thread for each request
-            server_thread = threading.Thread(target=server.serve_forever)
-            # Exit the server thread when the main thread terminates
-            server_thread.daemon = True
-            server_thread.start()
-            print("Starting UDP server in thread:", server_thread.name)
+        server = socketserver.ThreadingUDPServer((self.__address.ip, self.__address.port), UDPRequestHandler)
+        # Start a thread with the server -- that thread will then start one
+        # more thread for each request
+        server_thread = threading.Thread(target=server.serve_forever)
+        # Exit the server thread when the main thread terminates
+        server_thread.daemon = True
+        server_thread.start()
+        print("Starting UDP server in thread:", server_thread.name)
 
     @property
     def address(self) -> Address:
-        return self.__address
-
-
-from peerInfo import PeerInfo
-from address import Address
+        return self.__addressfrom peerInfo import PeerInfo
 import socket
 from UDPServer import UDPServer
 from registryCommunicator import RegistryCommunicator
-import asyncio
+import threading
+import time
 
 class GroupCommunicator:
     def __init__(self) -> None:
+        self.__shutdown = False
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer(self.__peerInfo)
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer.address)
                 
     def bMulticast(self, message: str) -> None:
-        for peer in self.__peerInfo.totalPeerList:
+        for peer in self.__peerInfo.activePeerList:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             print(f"Sending {message} to {peer}")
             sock.sendto(message.encode(), (peer.ip, peer.port))
@@ -91,7 +94,22 @@ class GroupCommunicator:
     async def start(self) -> None:
         self.__UDPServer.startServer()
         await self.__registryCommunicator.start()
-        self.bMulticast("unga bunga")from address import Address
+        periodicSendPeerMessageThread = threading.Thread(target=self.periodicallySendPeerMessage)
+        periodicSendPeerMessageThread.daemon = True
+        periodicSendPeerMessageThread.start()
+
+    def periodicallySendPeerMessage(self) -> None:
+        while not self.__shutdown:
+            for peer in self.__peerInfo.activePeerList:
+                peerMessage = f'peer{peer}'
+                self.bMulticast(peerMessage)
+                time.sleep(1)
+            time.sleep(60)# sleep for 60 seconds
+
+    @property
+    def shutdown(self) -> bool:
+        return self.__shutdown
+from address import Address
 
 class Source:
     def __init__(self, address: Address, date: str, peerList: set([Address])) -> None:
@@ -139,7 +157,7 @@ def getTeamName(teamName: str) -> str:
 # crafts response string with appropriate report information
 def getReport(peerInfo: PeerInfo) -> str:
     response = ''
-    totalPeerList = peerInfo.totalPeerList
+    totalPeerList = peerInfo.activePeerList
     sourceList = peerInfo.sourceList
 
     response += f'{len(totalPeerList)}\n'
@@ -165,19 +183,27 @@ from source import Source
 class PeerInfo:
     def __init__(self) -> None:
         self.__sourceList = {}
-        self.__totalPeerList= set([])
+        self.__activePeerList= set([])
 
     def addSource(self, source: Source) -> None:
         self.__sourceList[str(source.address)] = source
-        self.__totalPeerList.update(source.peerList)
+        self.__activePeerList.update(source.peerList)
 
     @property
-    def totalPeerList(self) -> set([Address]):
-        return self.__totalPeerList
+    def activePeerList(self) -> set([Address]):
+        return self.__activePeerList
 
     @property
     def sourceList(self) -> list([Source]):
-        return self.__sourceList.values()import craftResponseUtils
+        return self.__sourceList.values()
+
+    #returns list of all peers that were in the system, even peers that are inactive.
+    @property
+    def totalPeerList(self) -> set([Address]):
+        list = set([])
+        for source in self.__sourceList.values():
+            list.update(source.peerList)
+        return listimport craftResponseUtils
 from address import Address
 from TCPCommunication import TCPCommunication
 from peerInfo import PeerInfo
@@ -187,8 +213,7 @@ class RegistryCommunicator:
         self.__peerInfo = peerInfo
         self.__UDPServerAddress = UDPServerAddress
         self.__teamName = input("Enter Team Name: ")
-        self.__registryAddress = Address(input("Enter Registry Address: "), 
-            int(input("Enter Registry Port Address: ")))
+        self.__registryAddress = Address("localhost", 55921)
         self.__TCPCommunication = TCPCommunication(self.__registryAddress)
 
     async def start(self) -> None:

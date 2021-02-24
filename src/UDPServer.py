@@ -38,6 +38,7 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
 class UDPServer:
     def __init__(self, peerInfo: PeerInfo) -> None:
         self.__peerInfo = peerInfo
+        self.__timestamp = 0
         self.__address = Address("localhost", 
             int(input("Enter UDP Server Port Address: ")))
 
