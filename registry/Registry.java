@@ -31,7 +31,7 @@ public class Registry {
 	/** Maximum number of peer addresses that will be send when communicating with a peer */
 	public static final int MAX_NUM_OF_PEERS = 4;
 	/** If no port number is provided when running the registry, this port number will be used. */
-	public static final int DEFAULT_PORT_NUMBER = 55921;
+	public static final int DEFAULT_PORT_NUMBER = 55920;
 
 	private final static Logger LOGGER = Logger.getLogger(Registry.class.getName());
 	

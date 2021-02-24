@@ -37,9 +37,7 @@ class TCPCommunication:
         numPeers = await self.receiveMessage()
         peers = []
         for i in range(int(numPeers)):
-            peerString = await self.receiveMessage()
-            peer = peerString.split(":")
-            peers.append(Address(peer[0], int(peer[1])))
+            peers.append(Address(await self.receiveMessage()))
         return Source(self.__address, dateReceived, peers)
 
     async def closeSocket(self) -> None:

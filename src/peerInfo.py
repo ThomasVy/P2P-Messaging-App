@@ -1,27 +1,41 @@
 from address import Address
 from source import Source
+from enum import Enum
 
 class PeerInfo:
     def __init__(self) -> None:
-        self.__sourceList = {}
-        self.__activePeerList= set([])
+        self.__tcpSourceList = []
+        self.__udpSourceList = []
+        self.__udpSentPeerLog = []
+        self.__udpSentMessageLog = []
+        self.__peerList = set([])
 
-    def addSource(self, source: Source) -> None:
-        self.__sourceList[str(source.address)] = source
-        self.__activePeerList.update(source.peerList)
+    def addSourceFromUDP(self, source: Source) -> None:
+        self.__udpSourceList.append(source)
+        self.__peerList.update(source.peerList )
+
+    def addSourceFromTCP(self, source: Source) -> None:
+        self.__tcpSourceList.append(source)
+        self.__peerList.update(source.peerList)
+
+    def logPeerSentUDP(self, peerSent: Source) -> None:
+        self.__udpSentPeerLog.append(peerSent)
+
+    # def logMessageSentUDP(self, messageSent: Message) -> None:
+    #     self.__udpSentMessageLog.append(messageSent)
 
     @property
-    def activePeerList(self) -> set([Address]):
-        return self.__activePeerList
+    def udpSentPeerList(self) -> list([Source]):
+        return self.__udpSentPeerLog
 
     @property
-    def sourceList(self) -> list([Source]):
-        return self.__sourceList.values()
-
-    #returns list of all peers that were in the system, even peers that are inactive.
+    def tcpSourceList(self) -> list([Source]):
+        return self.__tcpSourceList
+    
     @property
-    def totalPeerList(self) -> set([Address]):
-        list = set([])
-        for source in self.__sourceList.values():
-            list.update(source.peerList)
-        return list
+    def udpSourceList(self) -> list([Source]):
+        return self.__udpSourceList
+
+    @property
+    def peerList(self) -> set([Address]):
+        return self.__peerList

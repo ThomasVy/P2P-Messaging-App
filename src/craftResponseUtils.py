@@ -28,21 +28,36 @@ def getTeamName(teamName: str) -> str:
 # crafts response string with appropriate report information
 def getReport(peerInfo: PeerInfo) -> str:
     response = ''
-    totalPeerList = peerInfo.activePeerList
-    sourceList = peerInfo.sourceList
+    totalPeerList = peerInfo.peerList
+    udpSourceList = peerInfo.udpSourceList
+    tcpSourceList = peerInfo.tcpSourceList
+    udpSentPeerList = peerInfo.udpSentPeerList
 
     response += f'{len(totalPeerList)}\n'
     for peer in totalPeerList:
         response += f'{peer}\n'
-    response += f'{len(sourceList)}\n'
+    response += f'{len(tcpSourceList)}\n'
 
-    # Iterate a second time to list the sources
-    for source in sourceList:
+    #tcp source list
+    for source in tcpSourceList:
         response += f'{source.address}\n'
         response += f'{source.date}\n'
         response += f'{len(source.peerList)}\n'
         for peer in source.peerList:
             response += f'{peer}\n'
+
+    #udp source list (peers received via udp)
+    response += f'{len(udpSourceList)}\n'
+    for source in udpSourceList:
+        response += f'{source.address} {source.peerList[0]} {source.date}\n'
+
+    #udp sent list
+    response += f'{len(udpSentPeerList)}\n'
+    for source in udpSentPeerList:
+        response += f'{source.address} {source.peerList[0]} {source.date}\n'
+
+    #TODO Need Snippets in the system
+
     return response
 
 def getLocation(serverAddress: Address) -> str:
