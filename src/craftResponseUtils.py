@@ -5,6 +5,7 @@
 from collections import namedtuple
 from peerInfo import PeerInfo
 from address import Address
+from snippet import Snippet
 import os
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
@@ -26,7 +27,7 @@ def getTeamName(teamName: str) -> str:
     return response
 
 # crafts response string with appropriate report information
-def getReport(peerInfo: PeerInfo) -> str:
+def getReport(peerInfo: PeerInfo, snippetList: set([Snippet])) -> str:
     response = ''
     totalPeerList = peerInfo.peerList
     udpSourceList = peerInfo.udpSourceList
@@ -56,7 +57,8 @@ def getReport(peerInfo: PeerInfo) -> str:
     for source in udpSentPeerList:
         response += f'{source.address} {source.peerList[0]} {source.date}\n'
 
-    #TODO Need Snippets in the system
+    for snippet in snippetList:
+        response += snippet
 
     return response
 

@@ -16,7 +16,7 @@ class GroupCommunicator:
         self.__snippetList = set([])
         self.__lamportTimestamp = 0;
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
-            self.__UDPServer.address)
+            self.__UDPServer.address, self.__snippetList)
                 
     def bMulticast(self, message: str) -> None:
         for peer in self.__peerInfo.peerList:
@@ -48,8 +48,6 @@ class GroupCommunicator:
                     #TODO: make sure the timestamp never goes backwards or something
                     self.__lamportTimestamp = lamportTimestamp
                     self.__snippetList.add(Snippet(lamportTimestamp, body, message.source))
-                    pass
-                    #TODO: add the tweet as a snippet
                 elif message.type == "peer":
                     self.__peerInfo.addSourceFromUDP(
                         Source(message.source, message.timestamp, set([Address(message.body)])))
