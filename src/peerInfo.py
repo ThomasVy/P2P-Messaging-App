@@ -1,12 +1,13 @@
 from address import Address
 from source import Source
-from enum import Enum
+from snippet import Snippet
 
 class PeerInfo:
     def __init__(self) -> None:
         self.__tcpSourceList = []
         self.__udpSourceList = []
         self.__udpSentPeerLog = []
+        self.__snippets = []
         self.__peerList = set([])
 
     def addSourceFromUDP(self, source: Source) -> None:
@@ -17,8 +18,15 @@ class PeerInfo:
         self.__tcpSourceList.append(source)
         self.__peerList.update(source.peerList)
 
-    def logPeerSentUDP(self, peerSent: Source) -> None:
-        self.__udpSentPeerLog.append(peerSent)
+    def logPeerMessage(self, peerMessage: Source) -> None:
+        self.__udpSentPeerLog.append(peerMessage)
+
+    def addSnippet(self, snippet: Snippet) -> None:
+        self.__snippets.append(snippet)
+
+    @property
+    def snippets(self) -> list([Snippet]):
+        return self.__snippets
 
     @property
     def udpSentPeerList(self) -> list([Source]):

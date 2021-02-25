@@ -22,3 +22,6 @@ class Message:
     @property
     def body(self) -> str:
         return self.__body
+
+    def __str__(self) -> str:
+        return f'{self.type}{self.body}'

@@ -1,5 +1,4 @@
 from peerInfo import PeerInfo
-import socket
 from UDPServer import UDPServer
 from registryCommunicator import RegistryCommunicator
 import threading
@@ -7,6 +6,8 @@ import time
 from source import Source
 from address import Address
 from snippet import Snippet
+import asyncio
+from datetime import datetime
 
 class GroupCommunicator:
     def __init__(self) -> None:
@@ -14,25 +15,17 @@ class GroupCommunicator:
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer()
         self.__lamportMutex = threading.Lock()
-        self.__snippetList = list([])
         self.__lamportTimestamp = 0
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
-            self.__UDPServer.address, self.__snippetList)
+            self.__UDPServer.address)
                 
-    def bMulticast(self, message: str) -> None:
-        for peer in self.__peerInfo.peerList:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.sendto(message.encode(), (peer.ip, peer.port))
-
     async def start(self) -> None:
         self.__UDPServer.startServer()
         await self.__registryCommunicator.start()
         periodicSendPeerMessageThread = threading.Thread(target=self.periodicallySendPeerMessage)
-        periodicSendPeerMessageThread.daemon = True
         periodicSendPeerMessageThread.start()
 
         periodicReadMessageQueueThread = threading.Thread(target=self.processMessageQueue)
-        periodicReadMessageQueueThread.daemon = True
         periodicReadMessageQueueThread.start()
 
     def processMessageQueue(self) -> None:
@@ -49,7 +42,7 @@ class GroupCommunicator:
                     snippet = Snippet(self.__lamportTimestamp, body, message.source)
                     self.__lamportTimestamp += 1
                     self.__lamportMutex.release()
-                    self.__snippetList.append(snippet)
+                    self.__peerInfo.addSnippet(snippet)
                 
                 elif message.type == "peer":
                     self.__peerInfo.addSourceFromUDP(
@@ -59,6 +52,10 @@ class GroupCommunicator:
                     print("Shutting Down...")
                     self.__shutdown = True
                     self.__UDPServer.shutdownServer()
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self.__registryCommunicator.start()) #do the final registry communication
+                    
             time.sleep(1)
 
     def sendSnippet(self, tweet) -> None:
@@ -66,15 +63,16 @@ class GroupCommunicator:
         message = f'snip{self.__lamportTimestamp} {tweet}'
         self.__lamportTimestamp += 1
         self.__lamportMutex.release()
-        self.bMulticast(message)
+        self.__UDPServer.bMulticast(message, self.__peerInfo)
 
     def periodicallySendPeerMessage(self) -> None:
         while not self.__shutdown:
-            for peer in self.__peerInfo.peerList.copy():
+            peerList = self.__peerInfo.peerList.copy()
+            for peer in peerList:
                 peerMessage = f'peer{peer}'
-                self.bMulticast(peerMessage)
+                self.__UDPServer.bMulticast(peerMessage, self.__peerInfo)
                 time.sleep(1)
-            time.sleep(60)# sleep for 60 seconds
+            time.sleep(30)# sleep for 60 seconds
 
     @property
     def shutdown(self) -> bool:
@@ -82,4 +80,4 @@ class GroupCommunicator:
 
     @property
     def snippets(self) -> list([Snippet]):
-        return self.__snippetList
+        return self.__peerInfo.snippets

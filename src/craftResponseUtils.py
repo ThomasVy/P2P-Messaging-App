@@ -27,7 +27,7 @@ def getTeamName(teamName: str) -> str:
     return response
 
 # crafts response string with appropriate report information
-def getReport(peerInfo: PeerInfo, snippetList: set([Snippet])) -> str:
+def getReport(peerInfo: PeerInfo) -> str:
     response = ''
     totalPeerList = peerInfo.peerList
     udpSourceList = peerInfo.udpSourceList
@@ -50,16 +50,16 @@ def getReport(peerInfo: PeerInfo, snippetList: set([Snippet])) -> str:
     #udp source list (peers received via udp)
     response += f'{len(udpSourceList)}\n'
     for source in udpSourceList:
-        response += f'{source.address} {source.peerList[0]} {source.date}\n'
+        response += f'{source.address} {list(source.peerList)[0]} {source.date}\n'
 
     #udp sent list
     response += f'{len(udpSentPeerList)}\n'
     for source in udpSentPeerList:
-        response += f'{source.address} {source.peerList[0]} {source.date}\n'
+        response += f'{source.address} {list(source.peerList)[0]} {source.date}\n'
 
     #snippets in the system
-    response += f'{len(snippetList)}'
-    for snippet in snippetList:
+    response += f'{len(peerInfo.snippets)}\n'
+    for snippet in peerInfo.snippets:
         response += f'{snippet}\n'
 
     return response

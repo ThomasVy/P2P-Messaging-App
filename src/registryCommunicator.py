@@ -5,9 +5,8 @@ from peerInfo import PeerInfo
 from snippet import Snippet
 
 class RegistryCommunicator:
-    def __init__(self, peerInfo: PeerInfo, UDPServerAddress: Address, snippetList: set([Snippet])) -> None:
+    def __init__(self, peerInfo: PeerInfo, UDPServerAddress: Address) -> None:
         self.__peerInfo = peerInfo
-        self.__snippetList = snippetList
         self.__UDPServerAddress = UDPServerAddress
         self.__teamName = input("Enter Team Name: ")
         self.__registryAddress = Address("localhost:55920")
@@ -29,7 +28,7 @@ class RegistryCommunicator:
         elif (requestType == "receive peers"):
            self.__peerInfo.addSourceFromTCP(await self.__TCPCommunication.receivePeers())
         elif (requestType == "get report"):
-            response = craftResponseUtils.getReport(self.__peerInfo, self.__snippetList)
+            response = craftResponseUtils.getReport(self.__peerInfo)
         elif (requestType == "get location"):
             response = craftResponseUtils.getLocation(self.__UDPServerAddress)
         else: # (requestType == "close" or anything unexpected)

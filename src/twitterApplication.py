@@ -9,10 +9,9 @@ class TwitterApplication:
        
     async def start(self) -> None: 
         await self.__groupCommunicator.start()
-        displayTweetsThread = threading.Thread(target=self.displayTweets)
-        displayTweetsThread.daemon = True
-        displayTweetsThread.start()
-        self.grabUserTweet()
+        grabTweetsThread = threading.Thread(target=self.grabUserTweet)
+        grabTweetsThread.start()
+        self.displayTweets()
     
     def displayTweets(self) -> None:
         oldSnippetLen = -1
