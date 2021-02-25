@@ -6,12 +6,15 @@ import threading
 import time
 from source import Source
 from address import Address
+from snippet import Snippet
 
 class GroupCommunicator:
     def __init__(self) -> None:
         self.__shutdown = False
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer()
+        self.__snippetList = set([])
+        self.__lamportTimestamp = 0;
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer.address)
                 
@@ -37,6 +40,14 @@ class GroupCommunicator:
             while self.__UDPServer.messageQueue: #process all messages in the queue
                 message = self.__UDPServer.messageQueue.pop()
                 if message.type == "snip":
+                    #splitting out the lamport timestamp from the rest of the snippet
+                    lamportTimestamp = message.body.split(" ")[0]
+                    body = message.body[message.body.index(" "):]
+                    print("Recieved message: " + body + " from " + str(message.source))
+                    #update our own lamport timestamp so that we are in step with everyone else
+                    #TODO: make sure the timestamp never goes backwards or something
+                    self.__lamportTimestamp = lamportTimestamp
+                    self.__snippetList.add(Snippet(lamportTimestamp, body, message.source))
                     pass
                     #TODO: add the tweet as a snippet
                 elif message.type == "peer":
@@ -58,3 +69,7 @@ class GroupCommunicator:
     @property
     def shutdown(self) -> bool:
         return self.__shutdown
+    
+    @property
+    def lamportTimestamp(self) -> int:
+        return self.__lamportTimestamp

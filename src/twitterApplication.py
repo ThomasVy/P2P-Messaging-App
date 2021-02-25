@@ -11,4 +11,5 @@ class TwitterApplication:
     
     def grabUserTweet(self)-> None:
         tweet = input()
+        tweet = "snip" + str(self.__groupCommunicator.lamportTimestamp) + " " + tweet
         self.__groupCommunicator.bMulticast(message=tweet)
