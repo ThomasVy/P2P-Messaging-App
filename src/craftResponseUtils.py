@@ -57,8 +57,10 @@ def getReport(peerInfo: PeerInfo, snippetList: set([Snippet])) -> str:
     for source in udpSentPeerList:
         response += f'{source.address} {source.peerList[0]} {source.date}\n'
 
+    #snippets in the system
+    response += f'{len(snippetList)}'
     for snippet in snippetList:
-        response += snippet
+        response += f'{snippet}\n'
 
     return response
 

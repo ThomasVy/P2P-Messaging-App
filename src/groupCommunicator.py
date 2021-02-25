@@ -13,15 +13,15 @@ class GroupCommunicator:
         self.__shutdown = False
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer()
-        self.__snippetList = set([])
-        self.__lamportTimestamp = 0;
+        self.__lamportMutex = threading.Lock()
+        self.__snippetList = list([])
+        self.__lamportTimestamp = 0
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer.address, self.__snippetList)
                 
     def bMulticast(self, message: str) -> None:
         for peer in self.__peerInfo.peerList:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            print(f"Sending {message} to {peer}")
             sock.sendto(message.encode(), (peer.ip, peer.port))
 
     async def start(self) -> None:
@@ -37,24 +37,36 @@ class GroupCommunicator:
 
     def processMessageQueue(self) -> None:
         while not self.__shutdown:
-            while self.__UDPServer.messageQueue: #process all messages in the queue
+            while len(self.__UDPServer.messageQueue): #process all messages in the queue
                 message = self.__UDPServer.messageQueue.pop()
                 if message.type == "snip":
                     #splitting out the lamport timestamp from the rest of the snippet
-                    lamportTimestamp = message.body.split(" ")[0]
+                    lamportTimestamp = int(message.body.split(" ")[0])
                     body = message.body[message.body.index(" "):]
-                    print("Recieved message: " + body + " from " + str(message.source))
                     #update our own lamport timestamp so that we are in step with everyone else
-                    #TODO: make sure the timestamp never goes backwards or something
-                    self.__lamportTimestamp = lamportTimestamp
-                    self.__snippetList.add(Snippet(lamportTimestamp, body, message.source))
+                    self.__lamportMutex.acquire()
+                    self.__lamportTimestamp = max(lamportTimestamp + 1, self.__lamportTimestamp)
+                    snippet = Snippet(self.__lamportTimestamp, body, message.source)
+                    self.__lamportTimestamp += 1
+                    self.__lamportMutex.release()
+                    self.__snippetList.append(snippet)
+                
                 elif message.type == "peer":
                     self.__peerInfo.addSourceFromUDP(
                         Source(message.source, message.timestamp, set([Address(message.body)])))
                     #TODO: add the new peers and the source
                 elif message.type == "stop":
+                    print("Shutting Down...")
                     self.__shutdown = True
-            time.sleep(5)
+                    self.__UDPServer.shutdownServer()
+            time.sleep(1)
+
+    def sendSnippet(self, tweet) -> None:
+        self.__lamportMutex.acquire()
+        message = f'snip{self.__lamportTimestamp} {tweet}'
+        self.__lamportTimestamp += 1
+        self.__lamportMutex.release()
+        self.bMulticast(message)
 
     def periodicallySendPeerMessage(self) -> None:
         while not self.__shutdown:
@@ -67,7 +79,7 @@ class GroupCommunicator:
     @property
     def shutdown(self) -> bool:
         return self.__shutdown
-    
+
     @property
-    def lamportTimestamp(self) -> int:
-        return self.__lamportTimestamp
+    def snippets(self) -> list([Snippet]):
+        return self.__snippetList

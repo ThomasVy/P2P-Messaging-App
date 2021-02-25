@@ -7,7 +7,6 @@ class PeerInfo:
         self.__tcpSourceList = []
         self.__udpSourceList = []
         self.__udpSentPeerLog = []
-        self.__udpSentMessageLog = []
         self.__peerList = set([])
 
     def addSourceFromUDP(self, source: Source) -> None:
@@ -20,9 +19,6 @@ class PeerInfo:
 
     def logPeerSentUDP(self, peerSent: Source) -> None:
         self.__udpSentPeerLog.append(peerSent)
-
-    # def logMessageSentUDP(self, messageSent: Message) -> None:
-    #     self.__udpSentMessageLog.append(messageSent)
 
     @property
     def udpSentPeerList(self) -> list([Source]):
