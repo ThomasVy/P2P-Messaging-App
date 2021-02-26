@@ -3,11 +3,12 @@ from address import Address
 from TCPCommunication import TCPCommunication
 from peerInfo import PeerInfo
 from snippet import Snippet
+from UDPServer import UDPServer
 
 class RegistryCommunicator:
-    def __init__(self, peerInfo: PeerInfo, UDPServerAddress: Address) -> None:
+    def __init__(self, peerInfo: PeerInfo, UDPServer: UDPServer) -> None:
         self.__peerInfo = peerInfo
-        self.__UDPServerAddress = UDPServerAddress
+        self.__UDPServer = UDPServer
         self.__teamName = input("Enter Team Name: ")
         self.__registryAddress = Address("localhost:55920")
         self.__TCPCommunication = TCPCommunication(self.__registryAddress)
@@ -30,7 +31,7 @@ class RegistryCommunicator:
         elif (requestType == "get report"):
             response = craftResponseUtils.getReport(self.__peerInfo)
         elif (requestType == "get location"):
-            response = craftResponseUtils.getLocation(self.__UDPServerAddress)
+            response = craftResponseUtils.getLocation(self.__UDPServer.address)
         else: # (requestType == "close" or anything unexpected)
             await self.__TCPCommunication.closeSocket()
         if response:

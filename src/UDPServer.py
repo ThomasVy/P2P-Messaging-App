@@ -1,4 +1,5 @@
 from address import Address
+from peer import Peer
 import threading
 from datetime import datetime
 from message import Message
@@ -7,7 +8,7 @@ from peerInfo import PeerInfo
 from source import Source
 
 class UDPServer:
-    def __init__(self) -> None:
+    def __init__(self, peerInfo: PeerInfo) -> None:
         self.__address = Address("localhost:"+input("Enter UDP Server Port Address: "))
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__socket.bind((self.__address.ip, self.__address.port))
@@ -40,7 +41,7 @@ class UDPServer:
 
     def logMessageSent(self, message: Message, peerInfo: PeerInfo) -> None:
         if message.type == "peer":
-            peerInfo.logPeerMessage(Source(message.source, message.timestamp, set([Address(message.body)])))
+            peerInfo.logPeerMessage(Source(message.source, message.timestamp, set([Peer(Address(message.body))])))
         
     @property
     def address(self) -> Address:

@@ -4,6 +4,7 @@
 import asyncio
 from datetime import datetime
 from address import Address
+from peer import Peer
 from source import Source
 
 #TCP communication class is used to communicate with the Registry.
@@ -37,7 +38,7 @@ class TCPCommunication:
         numPeers = await self.receiveMessage()
         peers = []
         for i in range(int(numPeers)):
-            peers.append(Address(await self.receiveMessage()))
+            peers.append(Peer(Address(await self.receiveMessage())))
         return Source(self.__address, dateReceived, peers)
 
     async def closeSocket(self) -> None:

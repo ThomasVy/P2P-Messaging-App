@@ -7,6 +7,7 @@ from peerInfo import PeerInfo
 from address import Address
 from snippet import Snippet
 import os
+from datetime import datetime
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
 
@@ -26,10 +27,11 @@ def getTeamName(teamName: str) -> str:
     response = f'{teamName}\n'
     return response
 
+
 # crafts response string with appropriate report information
 def getReport(peerInfo: PeerInfo) -> str:
     response = ''
-    totalPeerList = peerInfo.peerList
+    totalPeerList = peerInfo.totalPeerList
     udpSourceList = peerInfo.udpSourceList
     tcpSourceList = peerInfo.tcpSourceList
     udpSentPeerList = peerInfo.udpSentPeerList

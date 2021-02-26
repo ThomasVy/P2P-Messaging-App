@@ -3,7 +3,6 @@ class Address:
         splitAddress = address.split(":")
         self.__ip = splitAddress[0]
         self.__port = int(splitAddress[1])
-
     def __hash__(self) -> int:
         return hash((self.ip, self.port))
     
