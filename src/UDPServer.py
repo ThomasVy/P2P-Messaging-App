@@ -6,12 +6,16 @@ from message import Message
 import socket
 from peerInfo import PeerInfo
 from source import Source
+from requests import get
 
 class UDPServer:
     def __init__(self, peerInfo: PeerInfo) -> None:
-        self.__address = Address("127.0.0.1:"+input("Enter UDP Server Port Address: "))
+        ip = socket.gethostbyname(socket.gethostname())
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.__socket.bind((self.__address.ip, self.__address.port))
+        self.__socket.bind((ip, 0)) #bind to any available port
+        self.__address = Address(f"{ip}:{self.__socket.getsockname()[1]}")
+        print("UDP Server is at " + str(self.__address))
+
         self.__serverThread = threading.Thread(target=self.serve)
         self.__socketClosed = False
         self.__socketLock = threading.Lock()
@@ -47,7 +51,7 @@ class UDPServer:
             self.__socketLock.acquire()
             if not self.__socketClosed: # don't use the socket if it is closed.
                 self.logMessageSent(message, peerInfo)
-                self.__socket.sendto(messageText.encode(), (peer.ip, peer.port))
+                self.__socket.sendto(messageText.encode(), (socket.gethostbyname(peer.ip), peer.port))
             self.__socketLock.release()
 
     def logMessageSent(self, message: Message, peerInfo: PeerInfo) -> None:

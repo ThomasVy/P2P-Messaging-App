@@ -23,6 +23,7 @@ class TCPCommunication:
     async def receiveMessage(self) -> str:
         data = await self.__reader.readline()
         data = data.decode('utf-8').split('\n')[0]
+        print("Received " + data)
         return data
 
     # Writes to the socket with supplied message
@@ -37,6 +38,7 @@ class TCPCommunication:
         peers = []
         for i in range(int(numPeers)):
             peers.append(Peer(Address(await self.receiveMessage())))
+        print(peers)
         return Source(self.__address, dateReceived, peers)
 
     async def closeSocket(self) -> None:
