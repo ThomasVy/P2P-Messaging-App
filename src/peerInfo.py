@@ -15,12 +15,6 @@ class PeerInfo:
         self.__udpSourceList.append(source)
         self.__peerList.update(source.peerList)
         self.__totalPeerList.update(source.peerList)
-        
-        ## iterate though peer list and update appropriate timestamps
-        for freshPeer in source.peerList:
-            for peer in self.__peerList:
-                if freshPeer == peer:
-                    peer.updateTimestamp()
 
         ## also update the timestamp of the source since we have now heard from it
         for sourcePeer in self.__peerList:
@@ -32,27 +26,11 @@ class PeerInfo:
         self.__peerList.update(source.peerList)
         self.__totalPeerList.update(source.peerList)
 
-        ## iterate though peer list and update appropriate timestamps
-        for freshPeer in source.peerList:
-            for peer in self.__peerList:
-                if freshPeer == peer:
-                    peer.updateTimestamp()
-
     def logPeerMessage(self, peerMessage: Source) -> None:
         self.__udpSentPeerLog.append(peerMessage)
 
-        ## update the timestamp of the source since we have now heard from it
-        for sourcePeer in self.__peerList:
-            if sourcePeer.address == peerMessage.address:
-                sourcePeer.updateTimestamp()
-
     def addSnippet(self, snippet: Snippet) -> None:
         self.__snippets.append(snippet)
-
-        ## update the timestamp of the source since we have now heard from it
-        for sourcePeer in self.__peerList:
-            if sourcePeer.address == snippet.senderAddress:
-                sourcePeer.updateTimestamp()
 
     @property
     def snippets(self) -> list([Snippet]):

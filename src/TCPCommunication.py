@@ -23,12 +23,10 @@ class TCPCommunication:
     async def receiveMessage(self) -> str:
         data = await self.__reader.readline()
         data = data.decode('utf-8').split('\n')[0]
-        print("Received", f'"{data}"')
         return data
 
     # Writes to the socket with supplied message
     async def sendResponse(self, response: str) -> None:
-        print("Sending", f'"{response}"')
         self.__writer.write(response.encode())
         await self.__writer.drain()
 

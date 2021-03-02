@@ -8,8 +8,7 @@ import asyncio
 def main() -> None:
     twitterApp = TwitterApplication()
     loop = asyncio.get_event_loop()
-    loop.create_task(twitterApp.start())
-    loop.run_forever()
+    loop.run_until_complete(twitterApp.start())
 
 if __name__ == '__main__':
     main()

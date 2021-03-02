@@ -10,7 +10,7 @@ class RegistryCommunicator:
         self.__peerInfo = peerInfo
         self.__UDPServer = UDPServer
         self.__teamName = input("Enter Team Name: ")
-        self.__registryAddress = Address("localhost:55920")
+        self.__registryAddress = Address("127.0.0.1:55920")
         self.__TCPCommunication = TCPCommunication(self.__registryAddress)
 
     async def start(self) -> None:

@@ -2,7 +2,6 @@ from peerInfo import PeerInfo
 from UDPServer import UDPServer
 from registryCommunicator import RegistryCommunicator
 import threading
-import time
 from source import Source
 from address import Address
 from peer import Peer
@@ -11,7 +10,7 @@ import asyncio
 from datetime import datetime
 
 class GroupCommunicator:
-    def __init__(self) -> None:
+    def __init__(self, conditional: threading.Condition) -> None:
         self.__shutdown = False
         self.__peerInfo = PeerInfo()
         self.__UDPServer = UDPServer(self.__peerInfo)
@@ -19,20 +18,18 @@ class GroupCommunicator:
         self.__lamportTimestamp = 0
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer)
+        self.__periodicSendPeerMessageThread = threading.Thread(target=self.periodicallySendPeerMessage, args=(conditional,))
+        self.__periodicReadMessageQueueThread = threading.Thread(target=self.processMessageQueue, args=(conditional,))
+        self.__periodicallyPurgeInactivePeersThread = threading.Thread(target=self.periodicallyPurgeInactivePeers, args=(conditional,))
                 
     async def start(self) -> None:
         self.__UDPServer.startServer()
         await self.__registryCommunicator.start()
-        periodicSendPeerMessageThread = threading.Thread(target=self.periodicallySendPeerMessage)
-        periodicSendPeerMessageThread.start()
+        self.__periodicSendPeerMessageThread.start()
+        self.__periodicReadMessageQueueThread.start()
+        self.__periodicallyPurgeInactivePeersThread.start()
 
-        periodicReadMessageQueueThread = threading.Thread(target=self.processMessageQueue)
-        periodicReadMessageQueueThread.start()
-
-        periodicallyPurgeInactivePeersThread = threading.Thread(target=self.periodicallyPurgeInactivePeers)
-        periodicallyPurgeInactivePeersThread.start()
-
-    def processMessageQueue(self) -> None:
+    def processMessageQueue(self, conditional: threading.Condition) -> None:
         while not self.__shutdown:
             while len(self.__UDPServer.messageQueue): #process all messages in the queue
                 message = self.__UDPServer.messageQueue.pop()
@@ -51,16 +48,19 @@ class GroupCommunicator:
                 elif message.type == "peer":
                     self.__peerInfo.addSourceFromUDP(
                         Source(message.source, message.timestamp, set([Peer(Address(message.body))])))
-                    #TODO: add the new peers and the source
+
                 elif message.type == "stop":
-                    print("Shutting Down...")
                     self.__shutdown = True
-                    self.__UDPServer.shutdownServer()
+                    conditional.acquire()
+                    conditional.notifyAll()
+                    conditional.release()
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     loop.run_until_complete(self.__registryCommunicator.start()) #do the final registry communication
-                    
-            time.sleep(1)
+            conditional.acquire()
+            conditional.wait(timeout=1.0)
+            conditional.release()
+        print("processMessageQueue Thread Ending")
 
     def sendSnippet(self, tweet) -> None:
         self.__lamportMutex.acquire()
@@ -69,26 +69,29 @@ class GroupCommunicator:
         self.__lamportMutex.release()
         self.__UDPServer.bMulticast(message, self.__peerInfo)
 
-    def periodicallySendPeerMessage(self) -> None:
+    def periodicallySendPeerMessage(self, conditional: threading.Condition) -> None:
         while not self.__shutdown:
             peerList = self.__peerInfo.peerList.copy()
             for peer in peerList:
                 peerMessage = f'peer{peer}'
                 self.__UDPServer.bMulticast(peerMessage, self.__peerInfo)
-                time.sleep(1)
-            time.sleep(30)# sleep for 60 seconds
+            conditional.acquire()
+            conditional.wait(timeout=30.0)
+            conditional.release()
+        print("Sending Peer Message Thread Ending")
     
-    def periodicallyPurgeInactivePeers(self) -> None:
+    def periodicallyPurgeInactivePeers(self, conditional: threading.Condition) -> None:
         while not self.__shutdown:
-            peers = self.__peerInfo.peerList
+            peers = self.__peerInfo.peerList.copy()
             currentTime = datetime.now().timestamp()
             for peer in peers:
                 if (peer.timestamp + 180) < currentTime:
                     print("Have not heard from " + str(peer) + " in a while, disconnecting from them...")
                     self.__peerInfo.peerList.remove(peer)
-                time.sleep(1)
-            time.sleep(180)
-
+            conditional.acquire()
+            conditional.wait(timeout=180.0)
+            conditional.release()
+        print("Purge Thread Ending")
 
     @property
     def shutdown(self) -> bool:

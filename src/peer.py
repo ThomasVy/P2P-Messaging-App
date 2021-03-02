@@ -30,7 +30,6 @@ class Peer:
     def port(self) -> int:
         return self.__address.port
     
-
     def updateTimestamp(self) -> None:
         self.__timestamp = datetime.now().timestamp()
 
