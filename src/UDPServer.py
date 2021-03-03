@@ -13,7 +13,7 @@ class UDPServer:
         ip = socket.gethostbyname(socket.gethostname())
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__socket.bind((ip, 0)) #bind to any available port
-        self.__address = Address(f"{ip}:{self.__socket.getsockname()[1]}")
+        self.__address = Address(f"{self.__socket.getsockname()[0]}:{self.__socket.getsockname()[1]}")
         print("UDP Server is at " + str(self.__address))
 
         self.__serverThread = threading.Thread(target=self.serve)

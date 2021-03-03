@@ -15,7 +15,7 @@ Source = namedtuple('Source', 'address dateReceived numPeers peers')
 def getCode() -> str:
     currentLocation = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     files = [f for f in os.listdir(currentLocation) if os.path.isfile(os.path.join(currentLocation, f))]
-    response = "Python\n"
+    response = "py\n"
     for file in files:
         with open(os.path.join(currentLocation, file), 'r') as f:
             response += f.read()
