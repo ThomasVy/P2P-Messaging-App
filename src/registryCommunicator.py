@@ -1,3 +1,7 @@
+# registryCommunicator.py file 
+# This class will be used to communicate with registry
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
 import craftResponseUtils
 from address import Address
 from TCPCommunication import TCPCommunication
@@ -35,3 +39,4 @@ class RegistryCommunicator:
             await self.__TCPCommunication.closeSocket()
         if response:
             await self.__TCPCommunication.sendResponse(response)
+

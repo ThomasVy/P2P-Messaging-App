@@ -7,7 +7,6 @@ from peerInfo import PeerInfo
 from address import Address
 from snippet import Snippet
 import os
-from datetime import datetime
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
 
@@ -35,12 +34,10 @@ def getReport(peerInfo: PeerInfo) -> str:
     udpSourceList = peerInfo.udpSourceList
     tcpSourceList = peerInfo.tcpSourceList
     udpSentPeerList = peerInfo.udpSentPeerList
-
     response += f'{len(totalPeerList)}\n'
     for peer in totalPeerList:
         response += f'{peer}\n'
     response += f'{len(tcpSourceList)}\n'
-
     #tcp source list
     for source in tcpSourceList:
         response += f'{source.address}\n'
@@ -48,24 +45,22 @@ def getReport(peerInfo: PeerInfo) -> str:
         response += f'{len(source.peerList)}\n'
         for peer in source.peerList:
             response += f'{peer}\n'
-
     #udp source list (peers received via udp)
     response += f'{len(udpSourceList)}\n'
     for source in udpSourceList:
         response += f'{source.address} {list(source.peerList)[0]} {source.date}\n'
-
     #udp sent list
     response += f'{len(udpSentPeerList)}\n'
     for source in udpSentPeerList:
         response += f'{source.address} {list(source.peerList)[0]} {source.date}\n'
-
     #snippets in the system
     response += f'{len(peerInfo.snippets)}\n'
     for snippet in peerInfo.snippets:
         response += f'{snippet}\n'
-
     return response
 
+#creates response for the UDP Server location
 def getLocation(serverAddress: Address) -> str:
     response = f'{serverAddress}\n'
     return response
+

@@ -1,8 +1,13 @@
+# address.py file 
+# Address class for holding the ip address and the port number
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
 class Address:
     def __init__(self, address: str) -> None:
         splitAddress = address.split(":")
         self.__ip = splitAddress[0]
         self.__port = int(splitAddress[1])
+
     def __hash__(self) -> int:
         return hash((self.ip, self.port))
     
@@ -22,3 +27,4 @@ class Address:
 
     def __str__(self) -> str:
         return f'{self.__ip}:{self.__port}'
+

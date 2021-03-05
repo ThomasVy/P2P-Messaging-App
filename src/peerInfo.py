@@ -1,15 +1,20 @@
+# peerInfo.py file 
+# Holds all the information from peers. Eg. Snippets, 
+# peer messages sent, peer messages received
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
 from source import Source
 from snippet import Snippet
 from peer import Peer
 
 class PeerInfo:
     def __init__(self) -> None:
-        self.__tcpSourceList = []
-        self.__udpSourceList = []
-        self.__udpSentPeerLog = []
-        self.__snippets = []
-        self.__peerList = set([])
-        self.__totalPeerList = set([])
+        self.__tcpSourceList = [] #List of TCP sources 
+        self.__udpSourceList = [] #List of UDP sources 
+        self.__udpSentPeerLog = [] #List of UDP peer messages sent
+        self.__snippets = [] #snippets received
+        self.__peerList = set([]) #active peer lists
+        self.__totalPeerList = set([]) #all the known peers since the beginning
 
     def addSourceFromUDP(self, source: Source) -> None:
         self.__udpSourceList.append(source)
@@ -55,3 +60,4 @@ class PeerInfo:
     @property
     def totalPeerList(self) -> set([Peer]):
         return self.__totalPeerList
+

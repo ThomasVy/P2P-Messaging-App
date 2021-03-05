@@ -1,4 +1,5 @@
-# socketCommunication.py file 
+# TCPCommunication.py file 
+# TCP communication class is used to communicate with ports using TCP
 # CPSC 559 Project
 # By Zachery Sims & Thomas Vy
 import asyncio
@@ -7,11 +8,10 @@ from address import Address
 from peer import Peer
 from source import Source
 
-#TCP communication class is used to communicate with the Registry.
 class TCPCommunication: 
     def __init__(self, TCPAddress: Address):
-        self.__open = False
-        self.__address = TCPAddress
+        self.__open = False #variable to tell if the socket is still open
+        self.__address = TCPAddress #TCP address of the one to create a conneciton with
 
     async def openConnection(self):
         self.__open = True
@@ -38,7 +38,6 @@ class TCPCommunication:
         peers = []
         for i in range(int(numPeers)):
             peers.append(Peer(Address(await self.receiveMessage())))
-        print(peers)
         return Source(self.__address, dateReceived, peers)
 
     async def closeSocket(self) -> None:
@@ -48,3 +47,4 @@ class TCPCommunication:
     @property
     def open(self) -> bool:
         return self.__open
+

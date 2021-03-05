@@ -1,8 +1,13 @@
+# peer.py file 
+# Class for a single peer
+# CPSC 559 Project
+# By Zachery Sims & Thomas Vy
 from address import Address
 from datetime import datetime
 class Peer:
     def __init__(self, address: Address) -> None:
-        self.__address = address
+        self.__address = address #address of the peer
+        #last time we heard from this peer.
         self.__timestamp = datetime.now().timestamp()
 
     def __hash__(self) -> int:
@@ -35,3 +40,4 @@ class Peer:
 
     def __str__(self) -> str:
         return str(self.__address)
+
