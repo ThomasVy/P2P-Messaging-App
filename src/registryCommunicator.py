@@ -40,3 +40,7 @@ class RegistryCommunicator:
         if response:
             await self.__TCPCommunication.sendResponse(response)
 
+    @property
+    def teamName(self) -> str:
+        return self.__teamName
+

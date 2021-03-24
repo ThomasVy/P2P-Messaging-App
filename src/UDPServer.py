@@ -13,12 +13,12 @@ from source import Source
 
 class UDPServer:
     def __init__(self, peerInfo: PeerInfo) -> None:
+        self.__peerInfo = peerInfo
         ip = socket.gethostbyname(socket.gethostname()) #Grab the external IP address
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #Use UDP
         self.__socket.bind((ip, 0)) #use the external IP address and bind to any available port
         self.__address = Address(f"{self.__socket.getsockname()[0]}:{self.__socket.getsockname()[1]}")
         print("UDP Server is at " + str(self.__address))
-
         self.__serverThread = threading.Thread(target=self.serve)  #thread for receiving peer messages
         self.__socketClosed = False #signal that the socket is closed
         self.__socketLock = threading.Lock()
@@ -44,25 +44,27 @@ class UDPServer:
             dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             message = Message(data, sourceAddress, dateReceived)
             self.__messageQueue.append(message)
-            if (message.type == "stop"): #stop the server
-                self.shutdownServer()
-        print("UDP server Thread exiting")
+
+    def sendMessage(self, message: Message) -> None:
+        self.__socketLock.acquire()
+        if not self.__socketClosed: # don't use the socket if it is closed.
+            self.__socket.sendto(str(message).encode(),
+             (socket.gethostbyname(message.source.ip), message.source.port))
+            self.logMessageSent(message, self.__peerInfo) #log the message that was sent
+        self.__socketLock.release()
 
     #Send the message supplied to all active peers 
-    def bMulticast(self, messageText: str, peerInfo: PeerInfo) -> None:
-        for peer in peerInfo.peerList.copy():
+    def bMulticast(self, messageText: str) -> None:
+        for peer in self.__peerInfo.peerList.copy():
             dateSent = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             message = Message(messageText, peer, dateSent)
-            self.__socketLock.acquire()
-            if not self.__socketClosed: # don't use the socket if it is closed.
-                self.logMessageSent(message, peerInfo) #log the message that was sent
-                self.__socket.sendto(messageText.encode(), (socket.gethostbyname(peer.ip), peer.port))
-            self.__socketLock.release()
+            self.sendMessage(message)
 
     #log messages that were sent
-    def logMessageSent(self, message: Message, peerInfo: PeerInfo) -> None:
+    def logMessageSent(self, message: Message) -> None:
         if message.type == "peer": #currently only log the peer messages
-            peerInfo.logPeerMessage(Source(message.source, message.timestamp, set([Peer(Address(message.body))])))
+            self.__peerInfo.logPeerMessage(Source(message.source, message.timestamp,
+             set([Peer(Address(message.body))])))
         
     @property
     def address(self) -> Address:
