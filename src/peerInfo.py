@@ -6,6 +6,7 @@
 from source import Source
 from snippet import Snippet
 from peer import Peer
+from ackReceived import AckReceived
 
 class PeerInfo:
     def __init__(self) -> None:
@@ -15,6 +16,8 @@ class PeerInfo:
         self.__snippets = [] #snippets received
         self.__peerList = set([]) #active peer lists
         self.__totalPeerList = set([]) #all the known peers since the beginning
+        self.__acksReceived = set([])
+        self.__ackCount = 0
 
     def addSourceFromUDP(self, source: Source) -> None:
         self.__udpSourceList.append(source)
@@ -36,6 +39,10 @@ class PeerInfo:
 
     def addSnippet(self, snippet: Snippet) -> None:
         self.__snippets.append(snippet)
+    
+    def addAck(self, ackReceived: AckReceived) -> None:
+        self.__acksReceived.update(ackReceived)
+        self.__ackCount += 1
 
     @property
     def snippets(self) -> list([Snippet]):
@@ -61,3 +68,10 @@ class PeerInfo:
     def totalPeerList(self) -> set([Peer]):
         return self.__totalPeerList
 
+    @property
+    def acksReceived(self) -> set([AckReceived]):
+        return self.__acksReceived
+
+    @property
+    def ackCount(self) -> int:
+        return self.__ackCount

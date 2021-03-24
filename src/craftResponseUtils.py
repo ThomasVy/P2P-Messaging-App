@@ -6,6 +6,7 @@ from collections import namedtuple
 from peerInfo import PeerInfo
 from address import Address
 from snippet import Snippet
+from ackReceived import AckReceived
 import os
 
 Source = namedtuple('Source', 'address dateReceived numPeers peers')
@@ -34,6 +35,8 @@ def getReport(peerInfo: PeerInfo) -> str:
     udpSourceList = peerInfo.udpSourceList
     tcpSourceList = peerInfo.tcpSourceList
     udpSentPeerList = peerInfo.udpSentPeerList
+    ackList = peerInfo.acksReceived
+    ackCount = peerInfo.ackCount
     response += f'{len(totalPeerList)}\n'
     for peer in totalPeerList:
         response += f'{peer}\n'
@@ -57,6 +60,10 @@ def getReport(peerInfo: PeerInfo) -> str:
     response += f'{len(peerInfo.snippets)}\n'
     for snippet in peerInfo.snippets:
         response += f'{snippet}\n'
+    #acks received
+    for ackReceived in ackList:
+        response += f'{ackReceived}' # we dont add the newline character here because acks are supposed to end with one already
+    response += str(ackCount)
     return response
 
 #creates response for the UDP Server location

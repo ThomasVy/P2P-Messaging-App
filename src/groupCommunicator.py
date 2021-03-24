@@ -14,6 +14,7 @@ from snippet import Snippet
 import asyncio
 from datetime import datetime
 from message import Message
+from ackReceived import AckReceived
 
 class GroupCommunicator:
     def __init__(self, timerLock: threading.Condition) -> None:
@@ -69,7 +70,11 @@ class GroupCommunicator:
         self.__lamportTimestamp += 1
         self.__lamportMutex.release()
         self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
-
+        # Craft and send ack message for snippet
+        ackMessage = Message(message=f'ack{lamportTimestamp}',
+                     source=message.source,
+                     timestamp = message.timestamp)
+        self.__UDPServer.sendMessage(ackMessage)
     #Process all the UDP messages received in the UDPServer message queue
     def processMessageQueue(self) -> None:
         while not self.__shutdown:
@@ -83,10 +88,18 @@ class GroupCommunicator:
                 elif message.type == "stop":
                     self.__initiateShutdownSequence(message.source)
                     break # Do not process any more messages once the shutdown sequence is initiated.
+                elif message.type == "ack":
+                    self.__processAck()
             self.__timerLock.acquire()
             self.__timerLock.wait(timeout=1.0) #check the message queue every 1 second
             self.__timerLock.release()
         print("processMessageQueue Thread Ending")
+        
+    #Craft the ack object and add it to our internal list of received acks
+    def processAck(self, message) -> None:
+        lamportTimestamp = int(message.body.split(" ")[0])
+        ack = AckReceived(lamportTimestamp, message.source, message.timestamp)
+        self.__peerInfo.addAck(ack)
 
      #Sends snippet messages to all known peers in an interval
     def sendSnippet(self, tweet) -> None:
