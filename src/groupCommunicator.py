@@ -46,12 +46,13 @@ class GroupCommunicator:
         self.__shutdown = True #signal to stop looping all threads
         timeNow = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         ackMessage = Message(message=f'ack{self.__registryCommunicator.teamName}', 
-                     source=self.stopSenderAddress,
+                     source=stopSenderAddress,
                      timestamp=timeNow)
+        self.__UDPServer.shutdownServer()
         self.__UDPServer.sendMessage(ackMessage) #Send the ack shutdown message
         shutdownMessage = Message(message="shutdown",
                             source=self.__UDPServer.address,
-                            timeStamp=timeNow) #some random message to unblock our udp server
+                            timestamp=timeNow) #some random message to unblock our udp server
         self.__UDPServer.sendMessage(shutdownMessage)#Send UDPMessage to our server to unblock and shutdown
         self.__timerLock.acquire()
         self.__timerLock.notifyAll() #wake up all sleeping threads so they can shutdown

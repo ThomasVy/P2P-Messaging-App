@@ -50,7 +50,7 @@ class UDPServer:
         if not self.__socketClosed: # don't use the socket if it is closed.
             self.__socket.sendto(str(message).encode(),
              (socket.gethostbyname(message.source.ip), message.source.port))
-            self.logMessageSent(message, self.__peerInfo) #log the message that was sent
+            self.logMessageSent(message) #log the message that was sent
         self.__socketLock.release()
 
     #Send the message supplied to all active peers 
