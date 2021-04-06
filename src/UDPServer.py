@@ -30,10 +30,9 @@ class UDPServer:
 
     #shutdown the UDP server/socket
     def shutdownServer(self) -> None:
-        self.__socketLock.acquire()
-        self.__socketClosed = True
-        self.__socket.close()
-        self.__socketLock.release()
+        with self.__socketLock:
+            self.__socketClosed = True
+            self.__socket.close()
         shutdownMessage = Message(message="shutdown",
                             source=self.__address,
                             timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S")) #some random message to unblock our udp server
@@ -50,16 +49,15 @@ class UDPServer:
             self.__messageQueue.append(message)
 
     def sendMessage(self, message: Message) -> None:
-        self.__socketLock.acquire()
-        if not self.__socketClosed: # don't use the socket if it is closed.
-            self.__socket.sendto(str(message).encode(),
-             (socket.gethostbyname(message.source.ip), message.source.port))
-            self.logMessageSent(message) #log the message that was sent
-        self.__socketLock.release()
+        with self.__socketLock:
+            if not self.__socketClosed: # don't use the socket if it is closed.
+                self.__socket.sendto(str(message).encode(),
+                (socket.gethostbyname(message.source.ip), message.source.port))
+                self.logMessageSent(message) #log the message that was sent
 
     #Send the message supplied to all active peers 
     def bMulticast(self, messageText: str) -> None:
-        for peer in self.__peerInfo.peerList.copy():
+        for peer in self.__peerInfo.activePeerList:
             dateSent = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             message = Message(messageText, peer, dateSent)
             self.sendMessage(message)

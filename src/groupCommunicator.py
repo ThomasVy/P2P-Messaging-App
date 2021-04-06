@@ -17,7 +17,7 @@ from message import Message
 from ackReceived import AckReceived
 
 class GroupCommunicator:
-    def __init__(self, timerLock: threading.Condition) -> None:
+    def __init__(self, timerCondition: threading.Condition) -> None:
         self.__shutdown = False #This will be the variable that signals the system to shutdown
         self.__peerInfo = PeerInfo() #this will hold all the peer list, peer snippets, and peer messages
         self.__UDPServer = UDPServer(self.__peerInfo) #The UDP server for UDP communication
@@ -32,8 +32,7 @@ class GroupCommunicator:
             target=self.processMessageQueue)
         self.__periodicallyPurgeInactivePeersThread = threading.Thread(
             target=self.periodicallyPurgeInactivePeers)
-        self.__timerLock = timerLock
-        
+        self.__timerCondition = timerCondition
                 
     async def start(self) -> None:
         self.__UDPServer.startServer()
@@ -51,9 +50,8 @@ class GroupCommunicator:
                      timestamp=timeNow)
         self.__UDPServer.sendMessage(ackMessage) #Send the ack shutdown message
         self.__UDPServer.shutdownServer()
-        self.__timerLock.acquire()
-        self.__timerLock.notifyAll() #wake up all sleeping threads so they can shutdown
-        self.__timerLock.release()
+        with self.__timerCondition:
+            self.__timerCondition.notifyAll() #wake up all sleeping threads so they can shutdown
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self.__registryCommunicator.start()) #do the final registry communication
@@ -64,13 +62,12 @@ class GroupCommunicator:
         messageLamportTimestamp = int(message.body.split(" ")[0])
         body = message.body[message.body.index(" "):]
         #update our own lamport timestamp so that we are in step with everyone else
-        self.__lamportMutex.acquire()
-        correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
-        snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
-        if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
-            self.__lamportTimestamp = correctedTimestamp + 1
-            self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
-        self.__lamportMutex.release()
+        with self.__lamportMutex:
+            correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
+            snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
+            if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
+                self.__lamportTimestamp = correctedTimestamp + 1
+                self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
         # Craft and send ack message for snippet
         ackMessage = Message(message=f'ack {messageLamportTimestamp}',
                      source=message.source,
@@ -85,57 +82,52 @@ class GroupCommunicator:
                 if message.type == "snip":
                    self.__processSnippet(message)
                 elif message.type == "peer":
-                    self.__peerInfo.addSourceFromUDP(
-                        Source(message.source, message.timestamp, set([Peer(Address(message.body))])))
+                    self.__processPeer(message)
                 elif message.type == "ack ":
                     self.__processAck(message)
                 elif message.type == "stop":
                     self.__initiateShutdownSequence(message.source)
                     break # Do not process any more messages once the shutdown sequence is initiated.
-            self.__timerLock.acquire()
-            self.__timerLock.wait(timeout=1.0) #check the message queue every 1 second
-            self.__timerLock.release()
+            with self.__timerCondition:
+                self.__timerCondition.wait(timeout=1.0) #check the message queue every 1 second
         print("processMessageQueue Thread Ending")
-        
+    
+    def __processPeer(self, message: Message) -> None:
+        source = Source(message.source, message.timestamp, set([Peer(Address(message.body))]))
+        catchUpRequired = self.__peerInfo.addSourceFromUDP(source)
+        if (catchUpRequired):
+            #send catch up messages TODO
+            pass
+
     #Craft the ack object and add it to our internal list of received acks
     def __processAck(self, message: Message) -> None:
         lamportTimestamp = int(message.body)
-        ack = AckReceived(lamportTimestamp, message.source, message.timestamp)
+        ack = AckReceived(lamportTimestamp, message.source)
         self.__peerInfo.addAck(ack)
 
      #Sends snippet messages to all known peers in an interval
     def sendSnippet(self, tweet) -> None:
-        self.__lamportMutex.acquire()
-        message = f'snip{self.__lamportTimestamp} {tweet}'
-        self.__lamportTimestamp += 1
-        self.__lamportMutex.release()
+        with self.__lamportMutex:
+            message = f'snip{self.__lamportTimestamp} {tweet}'
+            self.__lamportTimestamp += 1
         self.__UDPServer.bMulticast(message)
 
     #Sends peer messages to all known peers in an interval
     def periodicallySendPeerMessage(self) -> None:
         while not self.__shutdown:
-            peerList = self.__peerInfo.peerList.copy()
-            for peer in peerList:
+            for peer in self.__peerInfo.activePeerList:
                 peerMessage = f'peer{peer}'
                 self.__UDPServer.bMulticast(peerMessage)
-            self.__timerLock.acquire()
-            self.__timerLock.wait(timeout=30.0) #send peer messages every 30 seconds
-            self.__timerLock.release()
+            with self.__timerCondition:
+                self.__timerCondition.wait(timeout=30.0) #send peer messages every 30 seconds
         print("Sending Peer Message Thread Ending")
     
     #delete peers if they haven't sent a peer message in a while (3 minutes)
     def periodicallyPurgeInactivePeers(self) -> None:
         while not self.__shutdown:
-            peers = self.__peerInfo.peerList.copy() #make a copy of the list because it might change
-            currentTime = datetime.now().timestamp()
-            for peer in peers:
-                #If the peer hasn't sent a peer message within 3 minutes, remove them
-                if (peer.timestamp + 180) < currentTime:
-                    print("Have not heard from " + str(peer) + " in a while, disconnecting from them...")
-                    self.__peerInfo.peerList.remove(peer)
-            self.__timerLock.acquire()
-            self.__timerLock.wait(timeout=180.0) #check again in 3 minutes
-            self.__timerLock.release()
+            self.__peerInfo.checkForInactivePeers()
+            with self.__timerCondition.acquire():
+                self.__timerCondition.wait(timeout=180.0) #check again in 3 minutes
         print("Purge Thread Ending")
 
     @property

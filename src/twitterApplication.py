@@ -30,9 +30,8 @@ class TwitterApplication:
                 for snippet in self.__groupCommunicator.snippets.copy(): #display all the tweets ever since the beginning
                     print(snippet)
                 print("---------------------Tweets End---------------------")
-            conditional.acquire()
-            conditional.wait(timeout=2.0) #display snippets every 2 seconds if there are new snippets
-            conditional.release()
+            with conditional:
+                conditional.wait(timeout=2.0) #display snippets every 2 seconds if there are new snippets
         print("Displaying Tweets Thread exiting")
         print("System is shutting down. Press Enter to close the program...")
 

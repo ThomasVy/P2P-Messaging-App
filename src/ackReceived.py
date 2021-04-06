@@ -4,17 +4,16 @@
 # By Zachery Sims & Thomas Vy
 from address import Address
 class AckReceived:
-    def __init__(self, lamportTimestamp: int, source: Address, date: str):
+    def __init__(self, lamportTimestamp: int, source: Address):
         self.__lamportTimestamp = lamportTimestamp #lamport time stamp of the incoming ack
         self.__source = source #source peer
-        self.__date = date #date the ack was received
 
     def __hash__(self) -> int:
-        return hash((self.__lamportTimestamp, self.__date))
+        return hash((self.__lamportTimestamp, self.__source))
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, AckReceived):
-            return ((self.__lamportTimestamp == other.__lamportTimestamp) and (self.__date == other.__date))
+            return ((self.__lamportTimestamp == other.__lamportTimestamp) and (self.__source == other.__source))
         else:
             return False
     @property
@@ -25,10 +24,6 @@ class AckReceived:
     def source(self) -> str:
         return self.__source
     
-    @property
-    def date(self) -> Address:
-        return self.__date
-    
     def __str__(self) -> str:
-        return f'{self.__lamportTimestamp} {self.__source} {self.__date}\n'
+        return f'{self.__lamportTimestamp} {self.__source}'
 

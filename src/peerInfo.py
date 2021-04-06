@@ -7,6 +7,8 @@ from source import Source
 from snippet import Snippet
 from peer import Peer
 from ackReceived import AckReceived
+from datetime import datetime
+import threading
 
 class PeerInfo:
     def __init__(self) -> None:
@@ -14,25 +16,30 @@ class PeerInfo:
         self.__udpSourceList = [] #List of UDP sources 
         self.__udpSentPeerLog = [] #List of UDP peer messages sent
         self.__snippets = [] #snippets received
-        self.__peerList = set([]) #active peer lists
-        self.__totalPeerList = set([]) #all the known peers since the beginning
+        self.__peerList = set([])  #all the known peers since the beginning
         self.__acksReceived = set([])
-        self.__ackCount = 0
+        #Prevents the peerlist from expanding while iterating over it
+        self.__peerListLock = threading.Lock()
 
-    def addSourceFromUDP(self, source: Source) -> None:
-        self.__udpSourceList.append(source)
-        self.__peerList.update(source.peerList)
-        self.__totalPeerList.update(source.peerList)
-
-        ## also update the timestamp of the source since we have now heard from it
-        for sourcePeer in self.__peerList:
-            if sourcePeer.address == source.address:
-                sourcePeer.updateTimestamp()
+    def addSourceFromUDP(self, source: Source) -> bool:
+        with self.__peerListLock:
+            catchUpReq = source not in self.__peerList #new addition so we need to send catch up messages
+            self.__udpSourceList.append(source)
+            self.__peerList.update(source.peerList)
+            ## also update the timestamp of the source since we have now heard from it
+            for sourcePeer in self.__peerList:
+                if sourcePeer.address == source.address:
+                    sourcePeer.updateTimestamp()
+                    #reactivated peer so we need to send catch up messages
+                    catchUpReq = sourcePeer.status == "silent" or sourcePeer.status == "missing_ack" 
+                    sourcePeer.status = "active"
+                    break
+        return catchUpReq
 
     def addSourceFromTCP(self, source: Source) -> None:
-        self.__tcpSourceList.append(source)
-        self.__peerList.update(source.peerList)
-        self.__totalPeerList.update(source.peerList)
+        with self.__peerListLock:
+            self.__tcpSourceList.append(source)
+            self.__peerList.update(source.peerList)
 
     def logPeerMessage(self, peerMessage: Source) -> None:
         self.__udpSentPeerLog.append(peerMessage)
@@ -42,8 +49,16 @@ class PeerInfo:
     
     def addAck(self, ackReceived: AckReceived) -> None:
         self.__acksReceived.update(ackReceived)
-        self.__ackCount += 1
 
+    def checkForInactivePeers(self) -> None:
+        with self.__peerListLock:
+            currentTime = datetime.now().timestamp()
+            for peer in self.__peerInfo.totalPeerList:
+                #If the peer hasn't sent a peer message within 3 minutes, remove them
+                if (peer.timestamp + 180) < currentTime:
+                    print(f'Have not heard from {peer} in a while, setting them inactive...')
+                    peer.status = "inactive"
+            
     @property
     def snippets(self) -> list([Snippet]):
         return self.__snippets
@@ -61,17 +76,14 @@ class PeerInfo:
         return self.__udpSourceList
 
     @property
-    def peerList(self) -> set([Peer]):
-        return self.__peerList
+    def activePeerList(self) -> set([Peer]):
+        activePeers = {peer for peer in self.__peerList if peer.status == "active"}
+        return activePeers
 
     @property
     def totalPeerList(self) -> set([Peer]):
-        return self.__totalPeerList
+        return self.__peerList
 
     @property
     def acksReceived(self) -> set([AckReceived]):
         return self.__acksReceived
-
-    @property
-    def ackCount(self) -> int:
-        return self.__ackCount

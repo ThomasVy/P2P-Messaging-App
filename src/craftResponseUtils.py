@@ -36,10 +36,9 @@ def getReport(peerInfo: PeerInfo) -> str:
     tcpSourceList = peerInfo.tcpSourceList
     udpSentPeerList = peerInfo.udpSentPeerList
     ackList = peerInfo.acksReceived
-    ackCount = peerInfo.ackCount
     response += f'{len(totalPeerList)}\n'
     for peer in totalPeerList:
-        response += f'{peer}\n'
+        response += f'{peer} {peer.status}\n'
     response += f'{len(tcpSourceList)}\n'
     #tcp source list
     for source in tcpSourceList:
@@ -61,9 +60,9 @@ def getReport(peerInfo: PeerInfo) -> str:
     for snippet in peerInfo.snippets:
         response += f'{snippet}\n'
     #acks received
+    response += f'{len(ackList)}\n'
     for ackReceived in ackList:
-        response += f'{ackReceived}' # we dont add the newline character here because acks are supposed to end with one already
-    response += str(ackCount)
+        response += f'{ackReceived}\n' # we dont add the newline character here because acks are supposed to end with one already
     return response
 
 #creates response for the UDP Server location
