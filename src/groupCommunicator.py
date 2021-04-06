@@ -85,6 +85,9 @@ class GroupCommunicator:
                     self.__processPeer(message)
                 elif message.type == "ack ":
                     self.__processAck(message)
+                elif message.type == "ctch":
+                    #TODO Program catch up
+                    pass
                 elif message.type == "stop":
                     self.__initiateShutdownSequence(message.source)
                     break # Do not process any more messages once the shutdown sequence is initiated.
@@ -96,8 +99,10 @@ class GroupCommunicator:
         source = Source(message.source, message.timestamp, set([Peer(Address(message.body))]))
         catchUpRequired = self.__peerInfo.addSourceFromUDP(source)
         if (catchUpRequired):
-            #send catch up messages TODO
-            pass
+            for snippet in self.__peerInfo.snippets:
+                catchUpTxt = f'ctch{snippet.senderAddress} {snippet.originalLamportTimestamp} {snippet.messageBody}'
+                catchUpMsg = Message(message=catchUpTxt, source=source.address, timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                self.__UDPServer.sendMessage(catchUpMsg)
 
     #Craft the ack object and add it to our internal list of received acks
     def __processAck(self, message: Message) -> None:

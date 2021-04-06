@@ -22,6 +22,10 @@ class Snippet:
         return self.__lamportTimestamp
     
     @property
+    def originalLamportTimestamp(self) -> int:
+        return self.__originalLamportTimestamp
+
+    @property
     def messageBody(self) -> str:
         return self.__messageBody
     
