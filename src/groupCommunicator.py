@@ -61,20 +61,22 @@ class GroupCommunicator:
     #processes a snippet from the message queue
     def __processSnippet(self, message: Message) -> None:
         #splitting out the lamport timestamp from the rest of the snippet
-        lamportTimestamp = int(message.body.split(" ")[0])
+        messageLamportTimestamp = int(message.body.split(" ")[0])
         body = message.body[message.body.index(" "):]
         #update our own lamport timestamp so that we are in step with everyone else
         self.__lamportMutex.acquire()
-        self.__lamportTimestamp = max(lamportTimestamp + 1, self.__lamportTimestamp)
-        snippet = Snippet(self.__lamportTimestamp, body, message.source)
-        self.__lamportTimestamp += 1
+        correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
+        snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
+        if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
+            self.__lamportTimestamp = correctedTimestamp + 1
+            self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
         self.__lamportMutex.release()
-        self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
         # Craft and send ack message for snippet
-        ackMessage = Message(message=f'ack{lamportTimestamp}',
+        ackMessage = Message(message=f'ack {messageLamportTimestamp}',
                      source=message.source,
-                     timestamp = message.timestamp)
+                     timestamp=message.timestamp)
         self.__UDPServer.sendMessage(ackMessage)
+    
     #Process all the UDP messages received in the UDPServer message queue
     def processMessageQueue(self) -> None:
         while not self.__shutdown:
@@ -85,19 +87,19 @@ class GroupCommunicator:
                 elif message.type == "peer":
                     self.__peerInfo.addSourceFromUDP(
                         Source(message.source, message.timestamp, set([Peer(Address(message.body))])))
+                elif message.type == "ack ":
+                    self.__processAck(message)
                 elif message.type == "stop":
                     self.__initiateShutdownSequence(message.source)
                     break # Do not process any more messages once the shutdown sequence is initiated.
-                elif message.type == "ack":
-                    self.__processAck()
             self.__timerLock.acquire()
             self.__timerLock.wait(timeout=1.0) #check the message queue every 1 second
             self.__timerLock.release()
         print("processMessageQueue Thread Ending")
         
     #Craft the ack object and add it to our internal list of received acks
-    def processAck(self, message) -> None:
-        lamportTimestamp = int(message.body.split(" ")[0])
+    def __processAck(self, message: Message) -> None:
+        lamportTimestamp = int(message.body)
         ack = AckReceived(lamportTimestamp, message.source, message.timestamp)
         self.__peerInfo.addAck(ack)
 

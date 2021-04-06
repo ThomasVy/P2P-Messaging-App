@@ -4,10 +4,18 @@
 # By Zachery Sims & Thomas Vy
 from address import Address
 class Snippet:
-    def __init__(self, lamportTimestamp: int, messageBody: str, senderAddress: Address):
+    def __init__(self, lamportTimestamp: int, originalLamportTimestamp: int,
+     messageBody: str, senderAddress: Address):
+        #The timestamp that sender originally had for this snippet.
+        self.__originalLamportTimestamp = originalLamportTimestamp  
         self.__lamportTimestamp = lamportTimestamp #lamport time stamp of the snippet
         self.__messageBody = messageBody #actual text of the snippet
         self.__senderAddress = senderAddress #the sender who sent the snippet
+
+    def __eq__(self, other: object):
+        return self.__originalLamportTimestamp == other.__originalLamportTimestamp and \
+            self.__senderAddress == other.__senderAddress and \
+            self.__messageBody == other.__messageBody
 
     @property
     def lamportTimestamp(self) -> int:
