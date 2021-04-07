@@ -59,13 +59,14 @@ class GroupCommunicator:
     #processes a snippet from the message queue
     def __processSnippet(self, message: Message) -> None:
         #splitting out the lamport timestamp from the rest of the snippet
-        messageLamportTimestamp = int(message.body.split(" ")[0])
-        body = message.body[message.body.index(" "):]
-        #update our own lamport timestamp so that we are in step with everyone else
+        messageBodyList = message.body.split(" ")
+        messageLamportTimestamp = int(messageBodyList[0])
+        body = ' '.join(messageBodyList[1:])
         with self.__lamportMutex:
             correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
             snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
             if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
+                #update our own lamport timestamp so that we are in step with everyone else
                 self.__lamportTimestamp = correctedTimestamp + 1
                 self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
         # Craft and send ack message for snippet
@@ -74,6 +75,19 @@ class GroupCommunicator:
                      timestamp=message.timestamp)
         self.__UDPServer.sendMessage(ackMessage)
     
+    def __processCatchUpSnip(self, messageBody: str) -> None:
+        messageBodyList = messageBody.split(" ")
+        originalSender = Address(messageBodyList[0])
+        messageLamportTimestamp = int(messageBodyList[1])
+        content = ' '.join(messageBodyList[2:])
+        with self.__lamportMutex:
+            correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
+            snippet = Snippet(correctedTimestamp, messageLamportTimestamp, content, originalSender)
+            if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
+                #update our own lamport timestamp so that we are in step with everyone else
+                self.__lamportTimestamp = correctedTimestamp + 1
+                self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
+
     #Process all the UDP messages received in the UDPServer message queue
     def processMessageQueue(self) -> None:
         while not self.__shutdown:
@@ -86,8 +100,7 @@ class GroupCommunicator:
                 elif message.type == "ack ":
                     self.__processAck(message)
                 elif message.type == "ctch":
-                    #TODO Program catch up
-                    pass
+                    self.__processCatchUpSnip(message.body)
                 elif message.type == "stop":
                     self.__initiateShutdownSequence(message.source)
                     break # Do not process any more messages once the shutdown sequence is initiated.
@@ -97,12 +110,16 @@ class GroupCommunicator:
     
     def __processPeer(self, message: Message) -> None:
         source = Source(message.source, message.timestamp, set([Peer(Address(message.body))]))
-        catchUpRequired = self.__peerInfo.addSourceFromUDP(source)
-        if (catchUpRequired):
+        catchUpList = self.__peerInfo.addSourceFromUDP(source)
+        for catchUpPeer in catchUpList:
             for snippet in self.__peerInfo.snippets:
                 catchUpTxt = f'ctch{snippet.senderAddress} {snippet.originalLamportTimestamp} {snippet.messageBody}'
-                catchUpMsg = Message(message=catchUpTxt, source=source.address, timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                catchUpMsg = Message(message=catchUpTxt,
+                                     source=catchUpPeer.address,
+                                     timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
                 self.__UDPServer.sendMessage(catchUpMsg)
+                with self.__timerCondition:
+                    self.__timerCondition.wait(timeout=1.0) #wait a little bit or else the messages could be out of order
 
     #Craft the ack object and add it to our internal list of received acks
     def __processAck(self, message: Message) -> None:
@@ -132,7 +149,7 @@ class GroupCommunicator:
         while not self.__shutdown:
             self.__peerInfo.checkForInactivePeers()
             with self.__timerCondition:
-                self.__timerCondition.wait(timeout=180.0) #check again in 3 minutes
+                self.__timerCondition.wait(timeout=60.0) #check again in 3 minutes
         print("Purge Thread Ending")
 
     @property

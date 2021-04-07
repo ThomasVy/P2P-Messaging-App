@@ -27,7 +27,7 @@ class TwitterApplication:
             if (len(self.__groupCommunicator.snippets) > oldSnippetLen): #display only when there are new snippets
                 oldSnippetLen = len(self.__groupCommunicator.snippets)
                 print("\n\n\n--------------------Tweets Begin--------------------")
-                for snippet in self.__groupCommunicator.snippets.copy(): #display all the tweets ever since the beginning
+                for snippet in self.__groupCommunicator.snippets: #display all the tweets ever since the beginning
                     print(snippet)
                 print("---------------------Tweets End---------------------")
             with conditional:

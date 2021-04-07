@@ -9,7 +9,7 @@ class Peer:
         self.__address = address #address of the peer
         #last time we heard from this peer.
         self.__timestamp = datetime.now().timestamp()
-        self.__status = "active"
+        self.__status = "alive"
 
     def __hash__(self) -> int:
         return hash((self.__address))

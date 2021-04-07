@@ -16,7 +16,7 @@ class UDPServer:
         self.__peerInfo = peerInfo
         ip = socket.gethostbyname(socket.gethostname()) #Grab the external IP address
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #Use UDP
-        self.__socket.bind((ip, 0)) #use the external IP address and bind to any available port
+        self.__socket.bind((ip, int(input("Port for UDP Server: ")))) #use the external IP address and bind to any available port
         self.__address = Address(f"{self.__socket.getsockname()[0]}:{self.__socket.getsockname()[1]}")
         print("UDP Server is at " + str(self.__address))
         self.__serverThread = threading.Thread(target=self.serve)  #thread for receiving peer messages

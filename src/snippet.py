@@ -14,8 +14,7 @@ class Snippet:
 
     def __eq__(self, other: object):
         return self.__originalLamportTimestamp == other.__originalLamportTimestamp and \
-            self.__senderAddress == other.__senderAddress and \
-            self.__messageBody == other.__messageBody
+            self.__senderAddress == other.__senderAddress
 
     @property
     def lamportTimestamp(self) -> int:

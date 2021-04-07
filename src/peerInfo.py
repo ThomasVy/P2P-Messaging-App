@@ -21,20 +21,21 @@ class PeerInfo:
         #Prevents the peerlist from expanding while iterating over it
         self.__peerListLock = threading.Lock()
 
-    def addSourceFromUDP(self, source: Source) -> bool:
+    def addSourceFromUDP(self, source: Source) -> set([Peer]):
         with self.__peerListLock:
-            catchUpReq = source not in self.__peerList #new addition so we need to send catch up messages
-            self.__udpSourceList.append(source)
-            self.__peerList.update(source.peerList)
+            catchUpList = {peer for peer in source.peerList if peer not in self.__peerList}
             ## also update the timestamp of the source since we have now heard from it
             for sourcePeer in self.__peerList:
                 if sourcePeer.address == source.address:
                     sourcePeer.updateTimestamp()
-                    #reactivated peer so we need to send catch up messages
-                    catchUpReq = sourcePeer.status == "silent" or sourcePeer.status == "missing_ack" 
-                    sourcePeer.status = "active"
+                    if(sourcePeer.status != "alive"):
+                        sourcePeer.status = "alive"
+                        #reactivated peer so we need to send catch up messages
+                        catchUpList.add(sourcePeer)
                     break
-        return catchUpReq
+            self.__udpSourceList.append(source)
+            self.__peerList.update(source.peerList)
+        return catchUpList
 
     def addSourceFromTCP(self, source: Source) -> None:
         with self.__peerListLock:
@@ -53,15 +54,16 @@ class PeerInfo:
     def checkForInactivePeers(self) -> None:
         with self.__peerListLock:
             currentTime = datetime.now().timestamp()
-            for peer in self.totalPeerList:
-                #If the peer hasn't sent a peer message within 3 minutes, remove them
-                if (peer.timestamp + 180) < currentTime:
-                    print(f'Have not heard from {peer} in a while, setting them inactive...')
-                    peer.status = "inactive"
-            
+            for peer in self.__peerList:
+                if(peer.status != "silent"):
+                    #If the peer hasn't sent a peer message within 3 minutes, remove them
+                    if (peer.timestamp + 60) < currentTime:
+                        print(f'Have not heard from {peer} in a while, setting them silent...')
+                        peer.status = "silent"
+                
     @property
     def snippets(self) -> list([Snippet]):
-        return self.__snippets
+        return self.__snippets.copy()
 
     @property
     def udpSentPeerList(self) -> list([Source]):
@@ -77,7 +79,7 @@ class PeerInfo:
 
     @property
     def activePeerList(self) -> set([Peer]):
-        activePeers = {peer for peer in self.__peerList if peer.status == "active"}
+        activePeers = {peer for peer in self.__peerList if peer.status == "alive"}
         return activePeers
 
     @property
