@@ -22,7 +22,7 @@ class GroupCommunicator:
         self.__peerInfo = PeerInfo() #this will hold all the peer list, peer snippets, and peer messages
         self.__UDPServer = UDPServer(self.__peerInfo) #The UDP server for UDP communication
         self.__lamportMutex = threading.Lock()
-        self.__lamportTimestamp = 0 #For keeping lamport timestep in check
+        self.__lamportTimestamp = 1 #For keeping lamport timestep in check
         self.__registryCommunicator = RegistryCommunicator(self.__peerInfo,
             self.__UDPServer) #for communicating between the registry
         #prepping the threads that are needed for communication
@@ -58,22 +58,23 @@ class GroupCommunicator:
 
     #processes a snippet from the message queue
     def __processSnippet(self, message: Message) -> None:
-        #splitting out the lamport timestamp from the rest of the snippet
         messageBodyList = message.body.split(" ")
         messageLamportTimestamp = int(messageBodyList[0])
         body = ' '.join(messageBodyList[1:])
-        with self.__lamportMutex:
-            correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
-            snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
-            if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
-                #update our own lamport timestamp so that we are in step with everyone else
-                self.__lamportTimestamp = correctedTimestamp + 1
-                self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
-        # Craft and send ack message for snippet
         ackMessage = Message(message=f'ack {messageLamportTimestamp}',
-                     source=message.source,
-                     timestamp=message.timestamp)
+                    source=message.source,
+                    timestamp=message.timestamp)
         self.__UDPServer.sendMessage(ackMessage)
+        if message.source != self.__UDPServer.address:#don't process snippets from self
+            #splitting out the lamport timestamp from the rest of the snippet
+            with self.__lamportMutex:
+                correctedTimestamp = max(messageLamportTimestamp + 1, self.__lamportTimestamp)
+                snippet = Snippet(correctedTimestamp, messageLamportTimestamp, body, message.source)
+                if(snippet not in self.__peerInfo.snippets): #only add the snippet if it hasn't been added before.
+                    #update our own lamport timestamp so that we are in step with everyone else
+                    self.__lamportTimestamp = correctedTimestamp + 1
+                    self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
+        # Craft and send ack message for snippet
     
     def __processCatchUpSnip(self, messageBody: str) -> None:
         messageBodyList = messageBody.split(" ")
@@ -131,6 +132,8 @@ class GroupCommunicator:
     def sendSnippet(self, tweet) -> None:
         with self.__lamportMutex:
             message = f'snip{self.__lamportTimestamp} {tweet}'
+            snippet = Snippet(self.__lamportTimestamp, self.__lamportTimestamp, tweet, self.__UDPServer.address)
+            self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
             self.__lamportTimestamp += 1
         self.__UDPServer.bMulticast(message)
 
@@ -149,7 +152,7 @@ class GroupCommunicator:
         while not self.__shutdown:
             self.__peerInfo.checkForInactivePeers()
             with self.__timerCondition:
-                self.__timerCondition.wait(timeout=60.0) #check again in 3 minutes
+                self.__timerCondition.wait(timeout=180.0) #check again in 3 minutes
         print("Purge Thread Ending")
 
     @property

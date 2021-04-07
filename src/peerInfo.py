@@ -57,7 +57,7 @@ class PeerInfo:
             for peer in self.__peerList:
                 if(peer.status != "silent"):
                     #If the peer hasn't sent a peer message within 3 minutes, remove them
-                    if (peer.timestamp + 60) < currentTime:
+                    if (peer.timestamp + 180) < currentTime:
                         print(f'Have not heard from {peer} in a while, setting them silent...')
                         peer.status = "silent"
                 
