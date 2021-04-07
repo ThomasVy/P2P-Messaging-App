@@ -131,7 +131,7 @@ class GroupCommunicator:
     def periodicallyPurgeInactivePeers(self) -> None:
         while not self.__shutdown:
             self.__peerInfo.checkForInactivePeers()
-            with self.__timerCondition.acquire():
+            with self.__timerCondition:
                 self.__timerCondition.wait(timeout=180.0) #check again in 3 minutes
         print("Purge Thread Ending")
 

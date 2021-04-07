@@ -32,11 +32,9 @@ class UDPServer:
     def shutdownServer(self) -> None:
         with self.__socketLock:
             self.__socketClosed = True
+            self.__socket.sendto("shutdown".encode(),
+                (socket.gethostbyname(self.__address.ip), self.__address.port))
             self.__socket.close()
-        shutdownMessage = Message(message="shutdown",
-                            source=self.__address,
-                            timestamp=datetime.now().strftime("%d/%m/%Y %H:%M:%S")) #some random message to unblock our udp server
-        self.sendMessage(shutdownMessage)#Send UDPMessage to our server to unblock and shutdown
 
     def serve(self) -> None:
         while not self.__socketClosed:
@@ -47,6 +45,7 @@ class UDPServer:
             dateReceived = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             message = Message(data, sourceAddress, dateReceived)
             self.__messageQueue.append(message)
+        print("server thread ending")
 
     def sendMessage(self, message: Message) -> None:
         with self.__socketLock:

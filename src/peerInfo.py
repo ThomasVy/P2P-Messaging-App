@@ -48,12 +48,12 @@ class PeerInfo:
         self.__snippets.append(snippet)
     
     def addAck(self, ackReceived: AckReceived) -> None:
-        self.__acksReceived.update(ackReceived)
+        self.__acksReceived.add(ackReceived)
 
     def checkForInactivePeers(self) -> None:
         with self.__peerListLock:
             currentTime = datetime.now().timestamp()
-            for peer in self.__peerInfo.totalPeerList:
+            for peer in self.totalPeerList:
                 #If the peer hasn't sent a peer message within 3 minutes, remove them
                 if (peer.timestamp + 180) < currentTime:
                     print(f'Have not heard from {peer} in a while, setting them inactive...')
