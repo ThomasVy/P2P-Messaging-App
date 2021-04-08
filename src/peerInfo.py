@@ -49,7 +49,6 @@ class PeerInfo:
         self.__snippets.append(snippet)
     
     def addAck(self, ackReceived: AckReceived) -> None:
-        print("________________________________Hey we got an ack from " + str(ackReceived.source))
         self.__acksReceived.add(ackReceived)
 
     def checkForInactivePeers(self) -> None:
