@@ -15,6 +15,7 @@ import asyncio
 from datetime import datetime
 from message import Message
 from ackReceived import AckReceived
+from ackWatcher import AckWatcher
 
 class GroupCommunicator:
     def __init__(self, timerCondition: threading.Condition) -> None:
@@ -135,6 +136,9 @@ class GroupCommunicator:
             snippet = Snippet(self.__lamportTimestamp, self.__lamportTimestamp, tweet, self.__UDPServer.address)
             self.__peerInfo.addSnippet(snippet) #add the snippet to the list of snippets
             self.__lamportTimestamp += 1
+        ackWatcher = AckWatcher(snippet, self.__peerInfo, self.__UDPServer)
+        checkAcksThread = threading.Thread(target = ackWatcher.start)
+        checkAcksThread.start()
         self.__UDPServer.bMulticast(message)
 
     #Sends peer messages to all known peers in an interval
